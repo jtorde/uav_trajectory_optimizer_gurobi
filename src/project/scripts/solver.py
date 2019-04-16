@@ -64,7 +64,7 @@ class Solver:
         #Constraint xT==x_final
         for i in range (0,3):  #Axis x, y, z
             for state in range (0,self.inp): #[POS, VEL, ACCEL,...,self.in-1]
-                self.m.addConstr(  self.getStateOrInput(state,self.N-1,self.dt,i)  ==  self.x0[i+3*state]  ) 
+                self.m.addConstr(  self.getStateOrInput(state,self.N-1,self.dt,i)  ==  self.xf[i+3*state]  ) 
 
         #Input Constraints: v<=vmax, a<=amax, u<=umax
         for t in range (0,self.N-1): #Intervals  t=0,....,N-2
@@ -74,11 +74,11 @@ class Solver:
                     self.m.addConstr(  self.getStateOrInput(state_or_input,t,self.dt,i)  >=  -self.max_values[state_or_input-1]  ) 
 
         #Constraints needed to force the flip maneuver
-        #Point A
-        self.m.addConstr(  self.getPos(int(self.N/4),self.dt,0)    ==  self.x0[0] -self.r      ) 
-        self.m.addConstr(  self.getPos(int(self.N/4),self.dt,1)    ==  self.x0[1]     )   
-        self.m.addConstr(  self.getPos(int(self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
-        self.m.addConstr(  self.getAccel(int(self.N/4),self.dt,0 )  >= 0.2   ) # Positive X acceleration 
+        # #Point A
+        # self.m.addConstr(  self.getPos(int(self.N/4),self.dt,0)    ==  self.x0[0] -self.r      ) 
+        # self.m.addConstr(  self.getPos(int(self.N/4),self.dt,1)    ==  self.x0[1]     )   
+        # self.m.addConstr(  self.getPos(int(self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
+        # self.m.addConstr(  self.getAccel(int(self.N/4),self.dt,0 )  >= 0.2   ) # Positive X acceleration 
 
 
         #Point B (top of the flip)
@@ -88,11 +88,11 @@ class Solver:
         self.m.addConstr(  self.getAccel(int(self.N/2),self.dt,2)  <=  -0.2   )   #Negative Z acceleration 
 
 
-        #Point C
-        self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,0)    ==  self.x0[0] +self.r      ) 
-        self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,1)    ==  self.x0[1]     )   
-        self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
-        self.m.addConstr(  self.getAccel(int(3*self.N/4),self.dt,0)  <= -0.2   )    # Negative X acceleration 
+        # #Point C
+        # self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,0)    ==  self.x0[0] +self.r      ) 
+        # self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,1)    ==  self.x0[1]     )   
+        # self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
+        # self.m.addConstr(  self.getAccel(int(3*self.N/4),self.dt,0)  <= -0.2   )    # Negative X acceleration 
 
 
         #Compute control cost and set objective
@@ -145,14 +145,23 @@ class Solver:
         ax.set_xlim([self.x0[0]-2*self.r,self.x0[0]+2*self.r])
         ax.set_ylim([self.x0[1]-1,self.x0[1]+1])
         ax.set_zlim([self.x0[2]-2*self.r,self.x0[2]+2*self.r])
-        plt.show()    
+        #plt.show()    
 
         axes = plt.gca()
         axes.scatter(time,posz, color='Blue', label='Position')
         axes.scatter(time,vx, color='Green', label='Position')
         #axes.scatter(time,posy, color='Green', label='Position')
         plt.grid(True)
-        plt.show()
+        #plt.show()
+
+    def getAllPos(self):
+        result=[(self.getPos(t,0,0).getValue(),self.getPos(t,0,1).getValue(),self.getPos(t,0,2).getValue()) for t in range (0,self.N)];
+        return result
+
+
+    def getAllAccel(self):
+        result=[(self.getAccel(t,0,0).getValue(),self.getAccel(t,0,1).getValue(),self.getAccel(t,0,2).getValue()) for t in range (0,self.N)];
+        return result        
 
     def getPos(self,t,tau,ii): #t is the segment, tau is the time inside a specific segment (\in[0,dt], i is the axis)
         return self.getStateOrInput(POS,t,tau,ii)
