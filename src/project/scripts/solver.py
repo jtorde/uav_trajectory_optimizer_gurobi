@@ -74,11 +74,11 @@ class Solver:
                     self.m.addConstr(  self.getStateOrInput(state_or_input,t,self.dt,i)  >=  -self.max_values[state_or_input-1]  ) 
 
         #Constraints needed to force the flip maneuver
-        # #Point A
-        # self.m.addConstr(  self.getPos(int(self.N/4),self.dt,0)    ==  self.x0[0] -self.r      ) 
-        # self.m.addConstr(  self.getPos(int(self.N/4),self.dt,1)    ==  self.x0[1]     )   
-        # self.m.addConstr(  self.getPos(int(self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
-        # self.m.addConstr(  self.getAccel(int(self.N/4),self.dt,0 )  >= 0.2   ) # Positive X acceleration 
+        #Point A
+        self.m.addConstr(  self.getPos(int(self.N/4),self.dt,0)    ==  self.x0[0] -self.r      ) 
+        self.m.addConstr(  self.getPos(int(self.N/4),self.dt,1)    ==  self.x0[1]     )   
+        self.m.addConstr(  self.getPos(int(self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
+        self.m.addConstr(  self.getAccel(int(self.N/4),self.dt,0 )  >= 0.2   ) # Positive X acceleration 
 
 
         #Point B (top of the flip)
@@ -89,10 +89,10 @@ class Solver:
 
 
         # #Point C
-        # self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,0)    ==  self.x0[0] +self.r      ) 
-        # self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,1)    ==  self.x0[1]     )   
-        # self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
-        # self.m.addConstr(  self.getAccel(int(3*self.N/4),self.dt,0)  <= -0.2   )    # Negative X acceleration 
+        self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,0)    ==  self.x0[0] +self.r      ) 
+        self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,1)    ==  self.x0[1]     )   
+        self.m.addConstr(  self.getPos(int(3*self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
+        self.m.addConstr(  self.getAccel(int(3*self.N/4),self.dt,0)  <= -0.2   )    # Negative X acceleration 
 
 
         #Compute control cost and set objective
