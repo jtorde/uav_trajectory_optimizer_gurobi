@@ -85,7 +85,7 @@ class Solver:
         self.m.addConstr(  self.getPos(int(self.N/2),self.dt,0)    ==  self.x0[0]     )   
         self.m.addConstr(  self.getPos(int(self.N/2),self.dt,1)    ==  self.x0[1]     )   
         self.m.addConstr(  self.getPos(int(self.N/2),self.dt,2)    ==  self.x0[2]+2*self.r )   
-        self.m.addConstr(  self.getAccel(int(self.N/2),self.dt,2)  <=  -0.2   )   #Negative Z acceleration 
+        self.m.addConstr(  self.getAccel(int(self.N/2),self.dt,2)  <=  -1-9.81   )   #Negative Z acceleration 
 
 
         # #Point C

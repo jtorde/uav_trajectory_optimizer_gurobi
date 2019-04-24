@@ -14,7 +14,7 @@ def getMarkerArray(color,all_pos,all_accel):
 	markerArray = MarkerArray()
 	for i in range (1,len(all_pos),1):
 		robotMarker = Marker()
-		robotMarker.header.frame_id = "map"
+		robotMarker.header.frame_id = "world"
 		robotMarker.header.seq = i
 		robotMarker.header.stamp    = rospy.get_rostime()
 		robotMarker.ns = "robot"
