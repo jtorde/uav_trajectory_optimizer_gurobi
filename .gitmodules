@@ -1,0 +1,12 @@
+[submodule "src/acl-ros-extra-v2"]
+	path = src/acl-ros-extra-v2
+	url = git@bitbucket.org:brettlopez/acl-ros-extra-v2.git
+[submodule "src/acl-system"]
+	path = src/acl-system
+	url = git@bitbucket.org:brettlopez/acl-system.git
+[submodule "src/acl_control"]
+	path = src/acl_control
+	url = git@bitbucket.org:brettlopez/acl_control.git
+[submodule "src/acl-planning"]
+	path = src/acl-planning
+	url = git@bitbucket.org:brettlopez/acl-planning.git

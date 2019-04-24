@@ -155,13 +155,16 @@ class Solver:
         #plt.show()
 
     def getAllPos(self):
-        result=[(self.getPos(t,0,0).getValue(),self.getPos(t,0,1).getValue(),self.getPos(t,0,2).getValue()) for t in range (0,self.N)];
-        return result
+        return [(self.getPos(t,0,0).getValue(),self.getPos(t,0,1).getValue(),self.getPos(t,0,2).getValue()) for t in range (0,self.N)]
 
+    def getAllVel(self):
+        return [(self.getVel(t,0,0).getValue(),self.getVel(t,0,1).getValue(),self.getVel(t,0,2).getValue()) for t in range (0,self.N)]
 
     def getAllAccel(self):
-        result=[(self.getAccel(t,0,0).getValue(),self.getAccel(t,0,1).getValue(),self.getAccel(t,0,2).getValue()) for t in range (0,self.N)];
-        return result        
+        return [(self.getAccel(t,0,0).getValue(),self.getAccel(t,0,1).getValue(),self.getAccel(t,0,2).getValue()) for t in range (0,self.N)]
+
+    def getAllJerk(self):
+        return [(self.getJerk(t,0,0).getValue(),self.getJerk(t,0,1).getValue(),self.getJerk(t,0,2).getValue()) for t in range (0,self.N)]
 
     def getPos(self,t,tau,ii): #t is the segment, tau is the time inside a specific segment (\in[0,dt], i is the axis)
         return self.getStateOrInput(POS,t,tau,ii)
