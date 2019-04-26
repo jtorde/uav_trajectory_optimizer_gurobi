@@ -15,10 +15,11 @@ N = 40;
 dt = 0.15; % period of each optim segment
 dc = 0.01; % control output rate
 
-t = 0:dc:(N*dt-dc);
+t = 0:dc:N*dt;
 
 figure(1), clf;
 subplot(411); plot(t,p); grid on; ylabel('Position'); legend('x','y','z');
+title('Multirotor Flip');
 subplot(412); plot(t,v); grid on; ylabel('Velocity');
 subplot(413); plot(t,a); grid on; ylabel('Acceleration');
 subplot(414); plot(t,j); grid on; ylabel('Jerk');
@@ -28,25 +29,43 @@ figure(2), clf;
 hold on;
 for i = 1:length(t)
     
+    % calculate desired attitude from acceleration vector
+%     R = computeAttitude([a(i,1);a(i,2);a(i,3)]);
+%     
+%     plotCoordinateFrame([p(i,1);p(i,2);p(i,3)],R,0.1)
+%     break;
+    
     % only plot at end of segments (dt rate)
-    if mod(i,dt/dc) ~=0, continue; end
+    k = mod(i,dt/dc);
+%     if k ~=0 && k ~=1 && k ~=8, continue; end
+    if k ~=0 && k ~= 8, continue; end
     
     % calculate desired attitude from acceleration vector
     R = computeAttitude([a(i,1);a(i,2);a(i,3)]);
     
     plotCoordinateFrame([p(i,1);p(i,2);p(i,3)],R,0.1)
+    
+%     if i>300, break; end
 end
-xlabel('X'); ylabel('Y'); zlabel('Z');
-view(-30, 30); axis square; grid on;
+xlabel('X'); ylabel('Y'); zlabel('Z'); title('Multirotor Flip')
+view(0, 0); axis square; grid on;
 axis([-2 1 -1 1 -1 1]*3)
 pxmin = min(p(:,1))-0.25; pxmax = max(p(:,1))+0.25;
 pymin = min(p(:,2))-1; pymax = max(p(:,2))+1;
 pzmin = min(p(:,3))-0.25; pzmax = max(p(:,3))+0.25;
 axis([pxmin pxmax pymin pymax pzmin pzmax]);
 
+annotation('textarrow',[0.35,0.25],[0.3,0.4],'String','flip direction')
+
 function R = computeAttitude(a)
 % Uses the acceleration vector to reconstruct the desired attitude
 % We assume a body flu coordinate frame
+
+    % If the desired acceleration vector is zero, bail
+    if sum(a) == 0
+        R = eye(3);
+        return;
+    end
 
     % we only care about accel dir
     a = a/norm(a);
