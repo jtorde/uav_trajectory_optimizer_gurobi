@@ -16,6 +16,7 @@ from visualization_msgs.msg import MarkerArray
 from solver import *
 from utils import *
 
+TAKEOFF_ALT = 1.5
 
 class Flipper:
     """Flipper"""
@@ -23,8 +24,8 @@ class Flipper:
         
         self.sub_state = rospy.Subscriber('vicon', ViconState, self.state_cb)
 
-        # trigger the flip
         self.srv_flip = rospy.Service('flip', Trigger, self.flip_cb)
+        self.srv_takeoff = rospy.Service('takeoff', Trigger, self.takeoff_cb)
 
         # outer loop setpoints
         self.pub_goal = rospy.Publisher('goal', QuadGoal, queue_size=1)
@@ -37,14 +38,34 @@ class Flipper:
         # desired control rate
         self.dc = 0.01
 
-        self.alt=1
-        
+        # motor spinup time, seconds
+        self.spinup_secs = 2
+
 
     def flip_cb(self, req):
         
         success = self.generate_flip_trajectory()
 
         return TriggerResponse(success=success, message='')
+
+
+    def takeoff_cb(self, req):
+
+        ts = rospy.get_time()
+
+        # Wait for motors to spin up
+        rospy.sleep(self.spinup_secs)
+
+        goal = QuadGoal()
+        goal.header.stamp = rospy.Time.now()
+        goal.pos.x,   goal.pos.y,   goal.pos.z   = (0., 0., TAKEOFF_ALT)
+        goal.vel.x,   goal.vel.y,   goal.vel.z   = (0., 0., 0.)
+        goal.accel.x, goal.accel.y, goal.accel.z = (0., 0., 0.)
+        goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = (0., 0., 0.)
+        goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
+        self.pub_goal.publish(goal)
+
+        return TriggerResponse(success=True, message='')
 
 
     def state_cb(self, msg):
@@ -111,7 +132,7 @@ class Flipper:
                 goal.vel.x,   goal.vel.y,   goal.vel.z   = v
                 goal.accel.x, goal.accel.y, goal.accel.z = a
                 goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = j
-                goal.xy_mode = goal.z_mode = 0
+                goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
                 self.pub_goal.publish(goal)
 
                 #print "Goal.accel= ", goal.accel.x,goal.accel.y,goal.accel.z
