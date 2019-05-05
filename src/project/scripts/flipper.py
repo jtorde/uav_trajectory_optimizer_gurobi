@@ -65,10 +65,24 @@ class Flipper:
         s = Solver(JERK)
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
-        s.setMaxValues([50,50,50,100,100])  #Vel, accel, jerk, snap,...
-        s.setN(40)
+        s.setMaxValues([5,10,25,10,100])  #Vel, accel, jerk, snap,...
+        
         s.setRadius(1)
-        s.solve()
+
+        solved=False
+
+        for dt in np.linspace(0.1, 8.0, num=50): #Line search on dt
+            print "Trying with dt= ",dt
+            s.setN(40,dt)
+            solved=s.solve()
+            if(solved==True):
+                break
+
+        if(solved==False):
+            print("No solution found after doing line search on dt")
+            return False;
+            
+
         self.pub_drone_markers.publish(getMarkerArray(GREEN,s.getAllPos(),s.getAllAccel()))
 
         #
