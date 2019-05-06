@@ -46,7 +46,7 @@ class Solver:
 
 	def solve(self):
 		
-		self.m.setParam('OutputFlag', 0) #Verbose=0
+		self.m.setParam('OutputFlag', 1) #Verbose=0
 
 		#Create variables
 		self.x=[]
@@ -60,6 +60,7 @@ class Solver:
 			for i in range (0,3):  #Axis x, y, z
 				for state in range (0,self.inp): #[POS, VEL, ACCEL,...,self.in-1]
 					self.m.addConstr(     self.getStateOrInput(state,t,self.dt,i)   ==  self.getStateOrInput(state,t+1,0,i)         )  #Continuity in that state
+
 
 		#Constraint x0==x_initial
 		for i in range (0,3):  #Axis x, y, z
@@ -86,48 +87,137 @@ class Solver:
 		# self.m.addConstr(  self.getPos(int(self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
 		# self.m.addConstr(  self.getAccel(int(self.N/4),self.dt,0 )  >= 0.2   ) # Positive X acceleration 
 		#print("using self.dt=",self.dt)
-		delay=2
+
+
+
+
+		#delay=4
+		eps_y=8
+
+
+
+		self.bin=[];
+		max_sequence=7
+		for t in range (0,self.N-1):
+
+			for id_sequence in range (0,max_sequence):
+				variable=self.m.addVar(vtype=GRB.BINARY,name="b"+str(t)+"_"+str(id_sequence))
+				self.bin=self.bin+[variable]
+
+
+		self.bin=np.array(self.bin).reshape((self.N-1, max_sequence))  #Rows=Time, Columns=Sequence number
+
+
+
+		for id_sequence in range (0,max_sequence):
+			self.m.addConstr(np.sum(self.bin[:,id_sequence])==1)
+
+
+	    # #If vale 1 --> in that polytope
+	    # for t in range (0,N):
+	    #     m.addConstr(np.sum(b[t,:])==1) #Note that b==1 -> Constraint doesn't mean Constraint --> b==1
+
+	    #     for i in range(b1.size):
+	    #         m.addGenConstrIndicator(b[t,0],1,lhs=np.dot(A1,x[t][0:3])[i],sense='<',rhs=b1[i]) #If b[t,0]==1, then...
+	    #     for i in range(b2.size):
+	    #         m.addGenConstrIndicator(b[t,1],1,lhs=np.dot(A2,x[t][0:3])[i],sense='<',rhs=b2[i]) #If b[t,1]==1, then...
+	    #     for i in range(b3.size):
+	    #         m.addGenConstrIndicator(b[t,2],1,lhs=np.dot(A3,x[t][0:3])[i],sense='<',rhs=b3[i]) #If b[t,2]==1, then...
+
+
+
+
 		#Point A (45 degrees roll)
-		az=self.getAccel(int(self.N/2)-3*delay,self.dt,2);
-		ay=self.getAccel(int(self.N/2)-3*delay,self.dt,1);
-		self.m.addConstr(   ay == az  );
-		self.m.addConstr(   ay >=0.1  );  
+		# az=self.getAccel(int(self.N/2)-3*delay,self.dt,2);
+		# ay=self.getAccel(int(self.N/2)-3*delay,self.dt,1);
+		# az_motor=az + 9.81
+		for t in range (0,self.bin.shape[0]):
+			#print("Imposing constraints arriba")
+			az=self.getAccel(t,self.dt,2);
+			ay=self.getAccel(t,self.dt,1);
+			az_motor=az+9.81;
+			self.m.addGenConstrIndicator(self.bin[t,0],1,lhs=ay-az_motor,sense='=',rhs=0)
+			self.m.addGenConstrIndicator(self.bin[t,0],1,lhs=ay,sense='>',rhs=eps_y)
+			#print("Imposing constraints  abajo")
+		#self.m.addConstr(   ay == az_motor  );
+		#self.m.addConstr(   ay >=eps_y   );  
 
 		#Point B (90 degrees roll) 
-		az=self.getAccel(int(self.N/2)-2*delay,self.dt,2);
-		ay=self.getAccel(int(self.N/2)-2*delay,self.dt,1);
-		self.m.addConstr(   ay >= 0.1  );
-		self.m.addConstr(   az == 0  );  
+		# az=self.getAccel(int(self.N/2)-2*delay,self.dt,2);
+		# ay=self.getAccel(int(self.N/2)-2*delay,self.dt,1);
+		# az_motor=az + 9.81
+		# self.m.addConstr(   ay >= eps_y  );
+		# self.m.addConstr(   az_motor == 0  );  
+		for t in range (0,self.bin.shape[0]):
+			az=self.getAccel(t,self.dt,2);
+			ay=self.getAccel(t,self.dt,1);
+			az_motor=az+9.81;
+			self.m.addGenConstrIndicator(self.bin[t,1],1,lhs=ay,sense='>',rhs=eps_y)
+			self.m.addGenConstrIndicator(self.bin[t,1],1,lhs=az_motor,sense='=',rhs=0)
 
 		#Point C (135 degrees roll) 
-		az=self.getAccel(int(self.N/2)-1*delay,self.dt,2);
-		ay=self.getAccel(int(self.N/2)-1*delay,self.dt,1);
-		self.m.addConstr(   ay == -az  );
-		self.m.addConstr(   az <=  (-0.1 ));#-9.81)*math.sin(math.pi/4)
+		# az=self.getAccel(int(self.N/2)-1*delay,self.dt,2);
+		# ay=self.getAccel(int(self.N/2)-1*delay,self.dt,1);
+		# az_motor=az + 9.81
+		# self.m.addConstr(   ay == -az_motor  );
+		# self.m.addConstr(   az_motor <=  -eps_y );#-9.81)*math.sin(math.pi/4)
+		for t in range (0,self.bin.shape[0]):
+			az=self.getAccel(t,self.dt,2);
+			ay=self.getAccel(t,self.dt,1);
+			az_motor=az+9.81;
+			self.m.addGenConstrIndicator(self.bin[t,2],1,lhs=ay + az_motor,sense='=',rhs=0)
+			self.m.addGenConstrIndicator(self.bin[t,2],1,lhs=az_motor,sense='<',rhs=-eps_y)
 
 		#Point D (180 degrees roll, upside down) 
 		az=self.getAccel(int(self.N/2),self.dt,2);
 		ay=self.getAccel(int(self.N/2),self.dt,1);
+		az_motor=az + 9.81
 		self.m.addConstr(   ay == 0  );
-		self.m.addConstr(   az <=  -0.1 -9.81 );
+		self.m.addConstr(   az_motor <=  -eps_y );
+		# for t in range (0,self.bin.shape[0]):
+		# 	az=self.getAccel(t,self.dt,2);
+		# 	ay=self.getAccel(t,self.dt,1);
+		# 	az_motor=az+9.81;
+		# 	self.m.addGenConstrIndicator(self.bin[t,3],1,lhs=ay,sense='=',rhs=0)
+		# 	self.m.addGenConstrIndicator(self.bin[t,3],1,lhs=az_motor,sense='<',rhs=-eps_y)
 
 		#Point C' (225 degrees roll) 
-		az=self.getAccel(int(self.N/2)+1*delay,self.dt,2);
-		ay=self.getAccel(int(self.N/2)+1*delay,self.dt,1);
-		self.m.addConstr(   ay == az  ); #Both will be negative 
-		self.m.addConstr(   az <=  (-0.1) ); #-9.81)*math.sin(math.pi/4)
+		# az=self.getAccel(int(self.N/2)+1*delay,self.dt,2);
+		# ay=self.getAccel(int(self.N/2)+1*delay,self.dt,1);
+		# az_motor=az + 9.81
+		# self.m.addConstr(   ay == az  ); #Both will be negative 
+		# self.m.addConstr(   az_motor <=  -eps_y ); #-9.81)*math.sin(math.pi/4)
+		for t in range (0,self.bin.shape[0]):
+			az=self.getAccel(t,self.dt,2);
+			ay=self.getAccel(t,self.dt,1);
+			az_motor=az+9.81;
+			self.m.addGenConstrIndicator(self.bin[t,4],1,lhs=ay-az,sense='=',rhs=0)
+			self.m.addGenConstrIndicator(self.bin[t,4],1,lhs=az_motor,sense='<',rhs=-eps_y)
 
 		#Point B' (270 degrees roll)
-		az=self.getAccel(int(self.N/2)+2*delay,self.dt,2);
-		ay=self.getAccel(int(self.N/2)+2*delay,self.dt,1);
-		self.m.addConstr(   ay <= -0.1  );
-		self.m.addConstr(   az == 0  );  
+		# az=self.getAccel(int(self.N/2)+2*delay,self.dt,2);
+		# ay=self.getAccel(int(self.N/2)+2*delay,self.dt,1);
+		# az_motor=az+9.81;
+		# self.m.addConstr(   ay <= -eps_y  );
+		# self.m.addConstr(   az_motor == 0 );  
+		for t in range (0,self.bin.shape[0]):
+			az=self.getAccel(t,self.dt,2);
+			ay=self.getAccel(t,self.dt,1);
+			az_motor=az+9.81;
+			self.m.addGenConstrIndicator(self.bin[t,5],1,lhs=ay,sense='<',rhs=-eps_y)
+			self.m.addGenConstrIndicator(self.bin[t,5],1,lhs=az_motor,sense='=',rhs=0)
 
-		#Point C' (315 degrees roll) 
-		az=self.getAccel(int(self.N/2)+3*delay,self.dt,2);
-		ay=self.getAccel(int(self.N/2)+3*delay,self.dt,1);
-		self.m.addConstr(   ay == -az  );
-		self.m.addConstr(   az >= 0.1 );
+		#Point A' (315 degrees roll) 
+
+		# self.m.addConstr(   ay == -az_motor  );
+		# self.m.addConstr(   ay <= -eps_y);
+		for t in range (0,self.bin.shape[0]):
+			az=self.getAccel(t,self.dt,2);
+			ay=self.getAccel(t,self.dt,1);
+			az_motor=az+9.81;
+			self.m.addGenConstrIndicator(self.bin[t,6],1,lhs=ay+az_motor,sense='=',rhs=0)
+			self.m.addGenConstrIndicator(self.bin[t,6],1,lhs=ay,sense='<',rhs=-eps_y)
+
 
 
 		#Point D' (360 degrees roll, hover) 
@@ -160,8 +250,8 @@ class Solver:
 
 		self.m.setObjective(quicksum(control_cost), GRB.MINIMIZE)
 
-
-		self.m.write("model_new.lp")
+		self.m.update()
+		self.m.write("model_new2.lp")
 		self.m.update()
 		self.m.optimize ()
 
@@ -172,6 +262,13 @@ class Solver:
 
 		if self.m.status == GRB.Status.OPTIMAL:
 			print('Optimal Solution found')
+
+			for i in range(0,self.bin.shape[0]): #Time
+			 	for j in range(0,self.bin.shape[1]): #Sequence
+					print (self.bin[i,j].X),
+				print("|||"),
+				print (self.getAccel(i,self.dt,0).getValue(), self.getAccel(i,self.dt,1).getValue(), self.getAccel(i,self.dt,2).getValue())
+
 			return True
 		elif self.m.status == GRB.Status.INF_OR_UNBD:
 			print('Model is infeasible or unbounded')

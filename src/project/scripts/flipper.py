@@ -65,15 +65,15 @@ class Flipper:
         s = Solver(JERK)
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
-        s.setMaxValues([5,10,25,10,100])  #Vel, accel, jerk, snap,...
+        s.setMaxValues([50,30,500,10,100])  #Vel, accel, jerk, snap,...
         
         s.setRadius(1)
 
         solved=False
 
-        for dt in np.linspace(0.1, 8.0, num=50): #Line search on dt
+        for dt in np.linspace(0.1, 4.0, num=50): #Line search on dt
             print "Trying with dt= ",dt
-            s.setN(40,dt)
+            s.setN(15,dt)
             solved=s.solve()
             if(solved==True):
                 break
@@ -114,6 +114,7 @@ class Flipper:
                 goal.xy_mode = goal.z_mode = 0
                 self.pub_goal.publish(goal)
 
+                #print "Goal.accel= ", goal.accel.x,goal.accel.y,goal.accel.z
                 csvdata.append(','.join(map(str,chain.from_iterable((p,v,a,j)))))
 
                 # maintain uniform timing (with period dc) for each intra-segment step

@@ -12,11 +12,11 @@ BLUE=3
 
 def getMarkerArray(color,all_pos,all_accel):
 	markerArray = MarkerArray()
-	print("All accelerations")
-	print(all_accel)
+	#print("All accelerations")
+	#print(all_accel)
 
 	for i in range (0,len(all_accel),1):
-		print("i=",i)
+		#print("i=",i)
 		print(all_accel[i])
 
 	#print("All Positions")
@@ -39,9 +39,13 @@ def getMarkerArray(color,all_pos,all_accel):
 
 
 		axis_z=[0,0,1]
-		accel=[ all_accel[i][0],  all_accel[i][1],  all_accel[i][2]]
+		#all_accel gives the total accel of the quad, including gravity // Accel_total =  accel_motors - 9.81
 
-		if(LA.norm(accel)>0.0001):
+		accel=[ all_accel[i][0],  all_accel[i][1],  all_accel[i][2]+9.81]  #This is the accel produced by the motors
+
+		print accel
+
+		if(LA.norm(accel)>0.001 and LA.norm(np.cross(accel, axis_z))>0.0001):
 			accel=accel/LA.norm(accel)
 			
 			#print(accel)
@@ -49,6 +53,7 @@ def getMarkerArray(color,all_pos,all_accel):
 			#print("normalized=",accel/LA.norm(accel))
 			axis=np.cross(accel, axis_z);
 			axis=axis/LA.norm(axis)
+
 			dot=np.dot(accel,axis_z)
 			angle=math.acos(dot)
 			#print("axis=",axis,"angle=",angle, "accel=",accel)
@@ -60,6 +65,14 @@ def getMarkerArray(color,all_pos,all_accel):
 			robotMarker.pose.orientation.y = my_quaternion.elements[2]
 			robotMarker.pose.orientation.z = my_quaternion.elements[3]
 			robotMarker.pose.orientation.w = my_quaternion.elements[0]
+		elif (accel[2]<0): #Upside down
+			my_quaternion = Quaternion(axis=np.array([1,0,0]), angle=-math.pi)
+
+			robotMarker.pose.orientation.x = my_quaternion.elements[1]
+			robotMarker.pose.orientation.y = my_quaternion.elements[2]
+			robotMarker.pose.orientation.z = my_quaternion.elements[3]
+			robotMarker.pose.orientation.w = my_quaternion.elements[0]
+
 		else: #Hover position
 			robotMarker.pose.orientation.x = 0
 			robotMarker.pose.orientation.y = 0
