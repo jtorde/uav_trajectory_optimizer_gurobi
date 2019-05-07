@@ -15,7 +15,7 @@ N = 40;
 dt = 0.15; % period of each optim segment
 dc = 0.01; % control output rate
 
-t = 0:dc:N*dt;
+t = 0:dc:(N*dt - dc);
 
 figure(1), clf;
 subplot(411); plot(t,p); grid on; ylabel('Position'); legend('x','y','z');
@@ -109,9 +109,9 @@ function plotCoordinateFrame(O, R, k)
     
     % Plot the axes
     hold on; ls = '-';
-    plot3(CX(1,:), CX(2,:), CX(3,:),'color','r','linewidth',2,'linestyle',ls);
-    plot3(CY(1,:), CY(2,:), CY(3,:),'color','g','linewidth',2,'linestyle',ls);
-    plot3(CZ(1,:), CZ(2,:), CZ(3,:),'color','b','linewidth',2,'linestyle',ls);
+    p1 = plot3(CX(1,:), CX(2,:), CX(3,:),'color','r','linewidth',2,'linestyle',ls);
+    p2 = plot3(CY(1,:), CY(2,:), CY(3,:),'color','g','linewidth',2,'linestyle',ls);
+    p3 = plot3(CZ(1,:), CZ(2,:), CZ(3,:),'color','b','linewidth',2,'linestyle',ls);
 end
 
 function R = axisangle2rotm(u,theta)
