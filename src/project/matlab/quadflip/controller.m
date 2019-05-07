@@ -1,36 +1,59 @@
-function u = controller(state, goal, t, P)
+function cmd = controller(state, goal, t, P)
 %CONTROLLER Summary of this function goes here
 %   Detailed explanation goes here
-u = zeros(4,1);
+
+% Forces
+[Fi, accel_fb] = getForce(state, goal, P);
+f = norm(Fi);
+
+% Moments
+qdes = getAttitude(Fi, goal, P);
+wdes = getRates(Fi, accel_fb, goal, qdes, t, P);
+
+Re = Q(state.q).toRotm()' * Q(qdes).toRotm();
+qe = Q.fromRotm(Re).q;
+
+M = -sign(qe(1))*P.att.Kp*qe(2:4)' + P.att.Kd*(wdes - state.w); % sign(qdes(1))*
+
+cmd.u = [f; M];
+cmd.Fi = Fi;
+cmd.qdes = qdes;
+cmd.wdes = wdes;
+
 end
 
-function [F, r_nom, goal] = getAccel(state, goal, P)
-    % PD control from position/velocity error to acceleration
-    e = goal.pos - state.pos;
-    edot = goal.vel - state.vel;
-    goal.accel_fb = P.Kp.*e + P.Kd.*edot;
+function [Fi, accel_fb] = getForce(state, goal, P)
+%GETACCEL Calculate desired force in inertial frame
+    % PD control from position/velocity error to acceleration (eq 6)
+    ep = goal.pos - state.pos;
+    ed = goal.vel - state.vel;
+    accel_fb = P.accel.Kp*ep + P.accel.Kd*ed + [0;0;1]*P.gravity;
+
+    % equation 7: desired force in the inertial frame
+    Fi = P.mass*(goal.accel + accel_fb);
     
-    r_nom = P.mass * (goal.accel + [0;0;1]*P.gravity);
-    
-    % TODO: numerically differentiate feedback acceleration to get jerk_fb
-    
-    F    = P.mass * (goal.accel    + goal.accel_fb);
-    F(3) = P.mass * (goal.accel(3) + P.gravity); % why no accel_fb?
+%     F    = P.mass * (goal.accel    + goal.accel_fb);
+%     F(3) = P.mass * (goal.accel(3) + P.gravity); % why no accel_fb?
 end
 
-function qdes = getAttitude(F, r_nom, goal, P)
+function qdes = getAttitude(F, accel_fb, P)
 %     Rdes = computeAttitude(goal.accel)';
 %     qdes = quatFromRotm(Rdes);
 %     return
     
-    Fbar = F/norm(F);
-    Fbarb = [0;0;1];
+    Fbar = F/norm(F); % eq 10
+    Fbarb = [0;0;1]; % eq 11
+    
+    %
+    % Find minimum-angle quaternion between Fi and Fb
+    %
+    
     FbxF = cross(Fbarb,Fbar);
     FbdF = dot(Fbarb,Fbar);
     qmin = [1 0 0 0];
     
     eps = 0.005;
-    if norm(r_nom) > P.minRmag
+    if norm(F) > P.minRmag
         if FbdF + 1 > eps
             tmp = 1/sqrt(2*(1 + FbdF));
             qmin(2:4) = tmp*FbxF';
@@ -43,15 +66,13 @@ function qdes = getAttitude(F, r_nom, goal, P)
     qmin = qmin/norm(qmin);
     
     % recompute r3 using true desired acceleration -- why?
-    F(3) = P.mass * (goal.accel_fb(3) + P.gravity);
+%     F(3) = P.mass * (goal.accel_fb(3) + P.gravity);
     
     % correct sign ambiguity if desired z accel is greater than gravity
-    if F(3)<0, F(3) = 0; end
-    
-    goal.f_total = norm(F);
+%     if F(3)<0, F(3) = 0; end
     
     % Only assign goal attitude if you aren't close to a singularity
-    if norm(r_nom) > P.minRmag
+    if norm(F) > P.minRmag
         % TODO: make sure qmin and qmin_old agree with each other
         
         qdes = qmin;
@@ -62,3 +83,37 @@ function qdes = getAttitude(F, r_nom, goal, P)
         qdes = [1 0 0 0];
     end
 end
+
+function wdes = getRates(F, accel_fb, goal, qdes, t, P)
+%GETRATES Calculate desired body rates
+
+    % Numerically differentiate acceleration feedback to get jerk_fb
+    persistent last_accel_fb;
+    if t ~= 0
+        jerk_fb = (accel_fb - last_accel_fb) / P.Ts;
+    else
+        jerk_fb = zeros(size(accel_fb));
+    end
+    
+    % LPF the differentiation
+    persistent last_jerk_fb;
+    if t ~= 0
+        tau = 0.1;
+        alpha = P.Ts / (tau + P.Ts);
+        jerk_fb = (1 - alpha)*last_jerk_fb + alpha*jerk_fb;
+    else
+        jerk_fb = zeros(size(accel_fb));
+    end
+
+    Fbar = F/norm(F);
+    Fdot = P.mass*(goal.jerk + jerk_fb);
+    Fbardot = Fdot/norm(F) - F*dot(F,Fdot)/norm(F)^3;
+%     wdes = cross(Fbar, Fbardot);
+    
+    tmp = Q(qdes).toRotm()'*Fbardot;
+    wdes = [-tmp(2); tmp(1); tmp(3)];
+    
+    last_accel_fb = accel_fb;
+    last_jerk_fb = jerk_fb;
+end
+

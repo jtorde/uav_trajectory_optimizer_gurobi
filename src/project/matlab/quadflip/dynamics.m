@@ -13,7 +13,7 @@ function state = dynamics(state, u, dt, P)
     %
 
     % translational
-    f = @(pos) Q(state.q).toRotm()*state.vel;
+    f = @(pos) state.vel;
     state.pos = rk4(f, state.pos, dt);
   
     % rotational (the lousy way)
@@ -25,7 +25,7 @@ function state = dynamics(state, u, dt, P)
     % Dynamics
     %
 
-    % TODO: Add drag
+    drag = [1;1;0]*P.bodyDrag;
     
     % force due to gravity, expressed in the inertial frame
     Fg = P.mass*[0;0;P.gravity];
@@ -34,7 +34,7 @@ function state = dynamics(state, u, dt, P)
     Fb = [0;0;thrust];
     
     % translational
-    f = @(vel) (1/P.mass)*(Q(state.q).toRotm()*Fb - Fg);
+    f = @(vel) (1/P.mass)*(Q(state.q).toRotm()*Fb - Fg) - drag.*vel.^2;
     state.vel = rk4(f, state.vel, dt);
     
     % rotational

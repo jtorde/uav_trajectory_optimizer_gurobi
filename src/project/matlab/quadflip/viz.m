@@ -1,14 +1,14 @@
-function handle = viz(state, varargin)
+function handle = viz(state, traj, cmd, handle, P)
 %VIZ Simulation visualization and drawing tools
-
-if nargin == 3, traj = varargin{1}; else, traj = []; end
-handle = varargin{end-1};
-P = varargin{end};
 
 if isempty(handle)
     handle{1} = drawEnvironment(state, traj, P);
+    handle{2} = drawDesiredAttitude(state, eye(3), []);
+    handle{3} = drawDesiredForce(state, zeros(3,1), []);
 else
     handle{1} = drawQuad(state, handle{1});
+    handle{2} = drawDesiredAttitude(state, cmd.qdes, handle{2});
+    handle{3} = drawDesiredForce(state, cmd.Fi, handle{3});
 end
 
 end
@@ -17,26 +17,26 @@ function hQuad = drawEnvironment(state, traj, P)
     % draw quad in initial state
     hQuad = drawQuad(state, []);
     
-%     for i = 1:size(traj.p,1)
-%     
-%         % only plot at end of segments (dt rate)
-%         k = mod(i,traj.dt/P.dc);
-%         if k ~= 0 && k ~= 4 && k ~= 8 && k ~= 12, continue; end
-% 
-%         % calculate desired attitude from acceleration vector
+    for i = 1:size(traj.p,1)
+    
+        % only plot at end of segments (dt rate)
+        k = mod(i,P.drawPeriod/P.Ts);
+        if k ~= 0, continue; end
+
+        % calculate desired attitude from acceleration vector
 %         R = computeAttitude(traj.a(i,:)');
-% 
-%         drawCoordinateAxes(traj.p(i,:)', R, 0.1, 1);
-%     end
+        R = eye(3);
+
+        drawCoordinateAxes(traj.p(i,:)', R, 0.1, 0.1);
+    end
     
     % world margin
     m = [-1 1 -1 1 -1 1]*0.75; % nominal margin
-%     datalimits = [min(traj.p(:,1)) max(traj.p(:,1))...
-%                   min(traj.p(:,2)) max(traj.p(:,2))...
-%                   min(traj.p(:,3)) max(traj.p(:,3))];
+    datalimits = [min(traj.p(:,1)) max(traj.p(:,1))...
+                  min(traj.p(:,2)) max(traj.p(:,2))...
+                  min(traj.p(:,3)) max(traj.p(:,3))];
     axis equal; grid on;
-%     axis(m + datalimits)
-    axis(m);
+    axis(m + datalimits)
     xlabel('X'); ylabel('Y'); zlabel('Z');
     
     % draw coordinate axes
@@ -100,7 +100,7 @@ end
 
 function handle = drawDesiredForce(state, F, handle)
     % Scale for aesthetics
-    F = 1*F;
+    F = 0.05*F;
     
     % TODO: need to rotate?
     
@@ -120,7 +120,7 @@ function handle = drawDesiredAttitude(state, q, handle)
     y = state.pos(2);
     z = state.pos(3);
 
-    R = rotmFromQuat(q);
+    R = Q(q).toRotm();
     
     handle = drawCoordinateAxes([x;y;z], R', 0.2, 1, handle);
 end
