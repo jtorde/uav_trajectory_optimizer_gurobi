@@ -36,7 +36,7 @@ P.accel.Kd = diag([4.5 4.5 5.0]);
 % moments feedback PD controller
 P.att.Kp = diag([0.06 0.06 0.3]);
 % P.att.Kp = diag([0 0 0]);
-P.att.Kd = diag([0.24 0.30 0.14]);
+P.att.Kd = diag([0.80 0.80 0.24]);
 % P.att.Kd = diag([0.1 0.1 0.1]);
 P.minRmag = 0.1;
 
@@ -46,9 +46,11 @@ P.minRmag = 0.1;
 % path: [x xd xdd xddd xdddd; y yd ... ; z zd ...]
 path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
 path.wps = [];
-path.wps(:,:,1) = [1 0 0 0 0; 0 0 0 0 0; 0 1 0 0 0];
-path.e = [1 0 0 0 0; 0 0 0 0 0; 1 0 0 0 0];
+path.wps(:,:,1) = [5 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.e = [5 0 0 0 0; 0 0 0 0 0; 5 0 0 0 0];
 [traj, ~] = trajgen(path, P);
+
+fprintf('Total trajectory time: %f\n\n', sum(traj.Tsegs));
 
 % plot trajectory log
 figure(2), clf; hold on;
@@ -80,7 +82,7 @@ for i = 1:N
     if execute_path == true
         u = cmd.u;
         state = dynamics(state, u, Ts, P);
-        if mod(i,1/P.drawPeriod)==0, drawnow; end
+        if mod(i,1/P.drawPeriod)== 0, drawnow; end
     end
     
     inputlog{i} = cmd;
@@ -97,6 +99,10 @@ plotState(statelog, inputlog, goallog, tvec, P);
 
 function goal = buildGoal(traj, i)
 %BUILDGOAL Builds a goal struct using the ith step of a trajectory
+
+% If we are still simulating, but have no more trajectory, just send the
+% last position and hover there.
+if i > size(traj.p,1), i = size(traj.p,1); end
 
 goal.pos = traj.p(i,:)';
 goal.vel = traj.v(i,:)';

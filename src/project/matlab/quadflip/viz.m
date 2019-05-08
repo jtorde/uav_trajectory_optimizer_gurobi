@@ -31,10 +31,12 @@ function hQuad = drawEnvironment(state, traj, P)
     end
     
     % world margin
+    s = 1;
+    e = size(traj.p,1);
     m = [-1 1 -1 1 -1 1]*0.75; % nominal margin
-    datalimits = [min(traj.p(:,1)) max(traj.p(:,1))...
-                  min(traj.p(:,2)) max(traj.p(:,2))...
-                  min(traj.p(:,3)) max(traj.p(:,3))];
+    datalimits = [min(traj.p(s:e,1)) max(traj.p(s:e,1))...
+                  min(traj.p(s:e,2)) max(traj.p(s:e,2))...
+                  min(traj.p(s:e,3)) max(traj.p(s:e,3))];
     axis equal; grid on;
     axis(m + datalimits)
     xlabel('X'); ylabel('Y'); zlabel('Z');

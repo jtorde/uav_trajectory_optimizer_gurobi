@@ -49,7 +49,7 @@ function [alphas, T] = polySolver(X,Y,Z,P)
     t_end = tf*2;
     t_mid = tf;
     
-    iters = 1;
+    iters = 2;
     
     for i = 1:iters
         A = get9PolySegmentMatrix(t0, t_mid);
@@ -60,7 +60,7 @@ function [alphas, T] = polySolver(X,Y,Z,P)
         alphas(3,:) = A\b(:,3);
 
         % check actuator feasibility
-        err = calcActuatorFeasibility(alphas, 5, [1.5, 1.5, 1], 10, -50, 100, pi/6, t_mid);
+        err = calcActuatorFeasibility(alphas, 5, [1.5, 1.5, 1], 0.1, 0, 100, pi/6, t_mid);
 
         if err == 1
             t_start = t_mid;
