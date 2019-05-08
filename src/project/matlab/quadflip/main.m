@@ -11,7 +11,7 @@ clear, clc
 % Simulation Setup
 
 % timing
-Tf = 4;   % [s] how long is the simulation
+Tf = 10;   % [s] how long is the simulation
 Ts = 0.01; % [s] simulation / control period
 N = Tf/Ts; %     number of iterations
 tvec = linspace(0,Tf,N);
@@ -30,11 +30,11 @@ P.J = diag([0.12 0.12 0.12]);
 P.bodyDrag = 0.5;
 % acceleration feedback PD controller
 P.accel.Kp = diag([6.0 6.0 7.0]);
-P.accel.Kp = diag([1 1 1]);
+% P.accel.Kp = diag([1 1 1]);
 P.accel.Kd = diag([4.5 4.5 5.0]);
-P.accel.Kd = diag([0 0 0]);
+% P.accel.Kd = diag([0 0 0]);
 % moments feedback PD controller
-P.att.Kp = diag([0.06 0.8 0.3]);
+P.att.Kp = diag([0.06 0.06 0.3]);
 % P.att.Kp = diag([0 0 0]);
 P.att.Kd = diag([0.12 0.15 0.07]);
 % P.att.Kd = diag([0.1 0.1 0.1]);
@@ -105,10 +105,10 @@ goal.vel = traj.v(i,:)';
 goal.accel = traj.a(i,:)';
 goal.jerk = traj.j(i,:)';
 
-goal.pos = [0.5 0 0]';
-goal.vel = [0 0 0]';
-goal.accel = [0 0 0]';
-goal.jerk = [0 0 0]';
+% goal.pos = [0.5 0 0]';
+% goal.vel = [0 0 0]';
+% goal.accel = [0 0 0]';
+% goal.jerk = [0 0 0]';
 
 end
 

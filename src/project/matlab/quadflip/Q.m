@@ -131,6 +131,26 @@ classdef Q
             
             obj = Q.fromRotm(rotm);
         end
+        
+        function obj = fromAxisAngle(u,theta)
+            % make sure axis is normalized
+            u = u/norm(u);
+            ux = u(1); uy = u(2); uz = u(3);
+
+            r11 = cos(theta) + ux*ux*(1-cos(theta));
+            r12 = ux*uy*(1-cos(theta)) - uz*sin(theta);
+            r13 = ux*uz*(1-cos(theta)) + uy*sin(theta);
+            r21 = uy*ux*(1-cos(theta)) + uz*sin(theta);
+            r22 = cos(theta) + uy*uy*(1-cos(theta));
+            r23 = uy*uz*(1-cos(theta)) - ux*sin(theta);
+            r31 = uz*ux*(1-cos(theta)) - uy*sin(theta);
+            r32 = uz*uy*(1-cos(theta)) + ux*sin(theta);
+            r33 = cos(theta) + uz*uz*(1-cos(theta));
+
+            R = [r11 r12 r13; r21 r22 r23; r31 r32 r33];
+            
+            obj = Q.fromRotm(R);
+        end
     end
 end
 
