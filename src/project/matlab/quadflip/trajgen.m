@@ -12,21 +12,24 @@ if isempty(path.wps), Nwps = 0; else, Nwps = size(path.wps,3); end
 % number of segments
 N = Nwps + 1;
 
-alphas = zeros(3, 10, N);
-Tsegs = zeros(1, N);
+alphas = zeros(3,10,N);
+Tsegs = zeros(1,N);
 
-A = get9PolySegmentMatrix(0, 10);
-
-b = [
-    path.s(1,:) path.e(1,:);
-    path.s(2,:) path.e(2,:);
-    path.s(3,:) path.e(3,:);
-    ]';
-
-alphas(1,:,1) = A\b(:,1);
-alphas(2,:,1) = A\b(:,2);
-alphas(3,:,1) = A\b(:,3);
-Tsegs(1) = 10;
+for n = 1:N
+    % decide on the starting point
+    if n == 1, spt = path.s;
+    else, spt = path.wps(:,:,n-1); end
+    
+    % decide on the ending point
+    if n == N, ept = path.e;
+    else, ept = path.wps(:,:,n); end
+    
+    % solve the polynomial coeffs for this traj segment
+    X = [spt(1,:) ept(1,:)];
+    Y = [spt(2,:) ept(2,:)];
+    Z = [spt(3,:) ept(3,:)];
+    [alphas(:,:,n), Tsegs(n)] = polySolver(X,Y,Z,P);
+end
 
 %
 % Use polynomial coefficients to generate a trajectory at the desired rate
@@ -34,6 +37,55 @@ Tsegs(1) = 10;
 
 traj = getTraj(alphas, Tsegs, P);
 
+end
+
+function [alphas, T] = polySolver(X,Y,Z,P)
+    alphas = zeros(3,10);
+    
+    t0 = 0;
+    tf = 10;
+    
+    t_start = t0;
+    t_end = tf*2;
+    t_mid = tf;
+    
+    iters = 1;
+    
+    for i = 1:iters
+        A = get9PolySegmentMatrix(t0, t_mid);
+
+        b = [X; Y; Z]';
+        alphas(1,:) = A\b(:,1);
+        alphas(2,:) = A\b(:,2);
+        alphas(3,:) = A\b(:,3);
+
+        % check actuator feasibility
+        err = calcActuatorFeasibility(alphas, 5, [1.5, 1.5, 1], 10, -50, 100, pi/6, t_mid);
+
+        if err == 1
+            t_start = t_mid;
+            t_mid = (t_mid + t_end) / 2;
+        else 
+            t_end = t_mid;
+            t_mid = (t_mid + t_start) / 2;
+        end
+    end
+    
+    % set the tf to the answer
+    if err == 1
+        tf = t_end;
+    else 
+        tf = t_mid;
+    end
+    
+    % recalculate poly coeffs one last time
+    A = get9PolySegmentMatrix(t0, tf);
+    b = [X; Y; Z]';
+    alphas(1,:) = A\b(:,1);
+    alphas(2,:) = A\b(:,2);
+    alphas(3,:) = A\b(:,3);
+    
+    T = tf;
 end
 
 function traj = getTraj(alphas, Tsegs, P)
@@ -44,7 +96,7 @@ function traj = getTraj(alphas, Tsegs, P)
 T = sum(Tsegs);
 
 % total number of points
-Npts = T/P.Ts;
+Npts = floor(T/P.Ts);
 
 % total number of segments
 Nsegs = length(Tsegs);

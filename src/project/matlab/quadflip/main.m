@@ -36,7 +36,7 @@ P.accel.Kd = diag([4.5 4.5 5.0]);
 % moments feedback PD controller
 P.att.Kp = diag([0.06 0.06 0.3]);
 % P.att.Kp = diag([0 0 0]);
-P.att.Kd = diag([0.12 0.15 0.07]);
+P.att.Kd = diag([0.24 0.30 0.14]);
 % P.att.Kd = diag([0.1 0.1 0.1]);
 P.minRmag = 0.1;
 
@@ -46,7 +46,8 @@ P.minRmag = 0.1;
 % path: [x xd xdd xddd xdddd; y yd ... ; z zd ...]
 path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
 path.wps = [];
-path.e = [1 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.wps(:,:,1) = [1 0 0 0 0; 0 0 0 0 0; 0 1 0 0 0];
+path.e = [1 0 0 0 0; 0 0 0 0 0; 1 0 0 0 0];
 [traj, ~] = trajgen(path, P);
 
 % plot trajectory log
@@ -65,9 +66,6 @@ execute_path = true;
 statelog = cell(N,1);
 inputlog = cell(N,1);
 goallog = cell(N,1);
-
-% state.vel(1) = 0.15;
-% state.q = Q.fromRPY(0,0.01,0).q;
 
 for i = 1:N
     t = tvec(i);
