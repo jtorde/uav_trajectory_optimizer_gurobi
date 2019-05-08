@@ -38,6 +38,11 @@ classdef Q
                 Rzx,    Rzy,    Rzz];
         end
         
+        function eul = toRPY(obj)            
+            % TODO: Replace with dependency-free implementation
+            eul = quat2eul(obj.q,'XYZ');
+        end
+        
         function obj = normalized(obj)
             obj.q = obj.q/norm(obj.q);
         end

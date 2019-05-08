@@ -11,7 +11,7 @@ clear, clc
 % Simulation Setup
 
 % timing
-Tf = 10;   % [s] how long is the simulation
+Tf = 4;   % [s] how long is the simulation
 Ts = 0.01; % [s] simulation / control period
 N = Tf/Ts; %     number of iterations
 tvec = linspace(0,Tf,N);
@@ -25,15 +25,19 @@ state.w = zeros(3,1);   % [rad/s] rate of body w.r.t world exprssd in body
 P.drawPeriod = 0.1;
 P.Ts = Ts;
 P.gravity = 9.80665; % [m/s/s]
-P.mass = 1.25; % [kg]
-P.J = diag([0.08 0.08 0.09]);
+P.mass = 1.4; % [kg]
+P.J = diag([0.12 0.12 0.12]);
 P.bodyDrag = 0.5;
 % acceleration feedback PD controller
 P.accel.Kp = diag([6.0 6.0 7.0]);
+P.accel.Kp = diag([1 1 1]);
 P.accel.Kd = diag([4.5 4.5 5.0]);
+P.accel.Kd = diag([0 0 0]);
 % moments feedback PD controller
-P.att.Kp = diag([0.06 0.06 0.3]);
-P.att.Kd = diag([0.12 0.12 0.07]);
+P.att.Kp = diag([0.06 0.8 0.3]);
+% P.att.Kp = diag([0 0 0]);
+P.att.Kd = diag([0.12 0.15 0.07]);
+% P.att.Kd = diag([0.1 0.1 0.1]);
 P.minRmag = 0.1;
 
 % -------------------------------------------------------------------------
@@ -60,6 +64,7 @@ execute_path = true;
 
 statelog = cell(N,1);
 inputlog = cell(N,1);
+goallog = cell(N,1);
 
 % state.vel(1) = 0.15;
 % state.q = Q.fromRPY(0,0.01,0).q;
@@ -75,18 +80,18 @@ for i = 1:N
     hViz = viz(state, [], cmd, hViz, P);
     
     if execute_path == true
-%         u = [P.mass*P.gravity 0 0 0]';
         u = cmd.u;
         state = dynamics(state, u, Ts, P);
         if mod(i,1/P.drawPeriod)==0, drawnow; end
     end
     
     inputlog{i} = cmd;
+    goallog{i} = goal;
 end
 
 % Plot state log
 figure(3), clf; hold on;
-plotState(statelog, inputlog, tvec, P);
+plotState(statelog, inputlog, goallog, tvec, P);
 
 % =========================================================================
 % Helpers
@@ -100,10 +105,10 @@ goal.vel = traj.v(i,:)';
 goal.accel = traj.a(i,:)';
 goal.jerk = traj.j(i,:)';
 
-% goal.pos = [0 0 0]';
-% goal.vel = [0 0 0]';
-% goal.accel = [0 0 0]';
-% goal.jerk = [0 0 0]';
+goal.pos = [0.5 0 0]';
+goal.vel = [0 0 0]';
+goal.accel = [0 0 0]';
+goal.jerk = [0 0 0]';
 
 end
 
@@ -116,7 +121,7 @@ subplot(414); plot(traj.j); grid on; ylabel('Jerk');
 xlabel('Time [s]');
 end
 
-function plotState(statelog, inputlog, tvec, P)
+function plotState(statelog, inputlog, goallog, tvec, P)
 
 states = [statelog{:}];
 p = [states.pos]';
@@ -128,26 +133,44 @@ inputs = [inputlog{:}];
 u = [inputs.u]';
 Fi = [inputs.Fi]';
 qdes = reshape([inputs.qdes], 4, size(p,1))';
+qe = reshape([inputs.qe], 4, size(p,1))';
 wdes = [inputs.wdes]';
+afb = [inputs.accel_fb]';
+jfb = [inputs.jerk_fb]';
+
+goals = [goallog{:}];
+pdes = [goals.pos]';
+vdes = [goals.vel]';
 
 % quaternion to RPY for plotting
 RPY = quat2eul(q,'ZYX') * 180/pi;
 RPYdes = quat2eul(qdes,'ZYX') * 180/pi;
+RPYerr = quat2eul(qe,'ZYX') * 180/pi;
 
-n = 6; i = 1;
+% color order: make the desired and actual traces the same color
+co = get(gca, 'ColorOrder');
+set(groot, 'defaultAxesColorOrder', [co(1:3,:); co(1:3,:)]);
+
+n = 7; i = 1;
 subplot(n,1,i); i = i+1;
-plot(tvec,p); grid on; ylabel('Position'); legend('x','y','z');
-title('State Log');
+plot(tvec,p); grid on; ylabel('Position'); hold on;
+plot(tvec,pdes,'--');
+title('State Log'); legend('x','y','z');
 
 subplot(n,1,i); i = i+1;
-plot(tvec,v); grid on; ylabel('Velocity');
+plot(tvec,v); grid on; ylabel('Velocity'); hold on;
+plot(tvec,vdes,'--');
 
 % subplot(n,1,i); i = i+1;
-% plot(tvec,q(:,2:4)); grid on; ylabel('Quaternion');
+% plot(tvec,q(:,2:4)); grid on; ylabel('Quaternion'); hold on;
+% plot(tvec,qdes(:,2:4),'--');
 
 subplot(n,1,i); i = i+1;
 plot(tvec,RPY); grid on; ylabel('Euler RPY'); hold on;
 plot(tvec,RPYdes,'--');
+
+% subplot(n,1,i); i = i+1;
+% plot(tvec,RPYerr); grid on; ylabel('RPY Error');
 
 subplot(n,1,i); i = i+1;
 plot(tvec,w); grid on; ylabel('Body Rates'); hold on;
@@ -158,6 +181,12 @@ plot(tvec,u(:,1)); grid on; ylabel('Thrust');
 
 subplot(n,1,i); i = i+1;
 plot(tvec,u(:,2:4)); grid on; ylabel('Moments');
+
+% subplot(n,1,i); i = i+1;
+% plot(tvec,afb); grid on; ylabel('Accel Feedback');
+
+subplot(n,1,i); i = i+1;
+plot(tvec,jfb); grid on; ylabel('Jerk Feedback');
 
 xlabel('Time [s]');
 

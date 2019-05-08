@@ -8,17 +8,21 @@ f = norm(Fi);
 
 % Moments
 qdes = getAttitude(Fi, goal, P);
-wdes = getRates(Fi, accel_fb, goal, qdes, t, P);
+[wdes, jerk_fb] = getRates(Fi, accel_fb, goal, qdes, t, P);
 
 Re = Q(state.q).toRotm()' * Q(qdes).toRotm();
 qe = Q.fromRotm(Re).q;
 
-M = -sign(qe(1))*P.att.Kp*qe(2:4)' + P.att.Kd*(wdes - state.w); % sign(qdes(1))*
+if (qe(1)<0), sgn = -1; else, sgn = 1; end
+M = sgn*P.att.Kp*qe(2:4)'; % + P.att.Kd*(wdes - state.w); % sign(qdes(1))*
 
 cmd.u = [f; M];
 cmd.Fi = Fi;
 cmd.qdes = qdes;
 cmd.wdes = wdes;
+cmd.accel_fb = accel_fb;
+cmd.jerk_fb = jerk_fb;
+cmd.qe = qe;
 
 end
 
@@ -84,7 +88,7 @@ function qdes = getAttitude(F, accel_fb, P)
     end
 end
 
-function wdes = getRates(F, accel_fb, goal, qdes, t, P)
+function [wdes, jerk_fb] = getRates(F, accel_fb, goal, qdes, t, P)
 %GETRATES Calculate desired body rates
 
     % Numerically differentiate acceleration feedback to get jerk_fb
@@ -98,7 +102,7 @@ function wdes = getRates(F, accel_fb, goal, qdes, t, P)
     % LPF the differentiation
     persistent last_jerk_fb;
     if t ~= 0
-        tau = 0.1;
+        tau = 0.01;
         alpha = P.Ts / (tau + P.Ts);
         jerk_fb = (1 - alpha)*last_jerk_fb + alpha*jerk_fb;
     else
@@ -108,10 +112,10 @@ function wdes = getRates(F, accel_fb, goal, qdes, t, P)
     Fbar = F/norm(F);
     Fdot = P.mass*(goal.jerk + jerk_fb);
     Fbardot = Fdot/norm(F) - F*dot(F,Fdot)/norm(F)^3;
-%     wdes = cross(Fbar, Fbardot);
+    wdes = cross(Fbar, Fbardot);
     
-    tmp = Q(qdes).toRotm()'*Fbardot;
-    wdes = [-tmp(2); tmp(1); tmp(3)];
+%     tmp = Q(qdes).toRotm()'*Fbardot;
+%     wdes = [-tmp(2); tmp(1); tmp(3)];
     
     last_accel_fb = accel_fb;
     last_jerk_fb = jerk_fb;
