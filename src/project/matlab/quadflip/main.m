@@ -46,10 +46,10 @@ P.minRmag = 0.1;
 % path: [x xd xdd xddd xdddd; y yd ... ; z zd ...]
 path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
 path.wps = [];
-path.wps(:,:,1) = [5 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
-path.wps(:,:,2) = [5 0 0 0 0; 0 0 0 0 0; 5 0 0 0 0];
+path.wps(:,:,1) = [5 0 nan nan nan; 0 0 nan nan nan; 0 0.5 2 nan nan];
+% path.wps(:,:,2) = [5 nan nan nan nan; 0 nan nan nan nan; 5 nan nan nan nan];
 path.e = [10 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
-path.T = [0 5 10 15];
+path.T = [0 5 10];
 [traj, ~] = trajgen(path, P);
 
 fprintf('Total trajectory time: %f\n\n', traj.Tdurs(end));

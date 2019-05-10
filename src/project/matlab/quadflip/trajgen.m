@@ -212,31 +212,36 @@ wpRowIdx = firstIdx(end);
 for n = 1:Nwps
     % for convenience, extract current waypoint    
     w = path.wps(:,:,n);
-    
+
     % start the waypoint row index (starts at last row)
     wpRowIdx = wpRowIdx + (n-1)*10;
-    
-    % Assumption: Every waypoint has *at least* position specified. Some
-    % combination (or none) of the derivatives may have been specified, in
-    % which case a continuity constraint is automatically imposed. These
-    % unspecified derivatives are given by NaN.
-    A(wpRowIdx+1,(n-1)*10+(1:10)) = poly9(t(n+1)-teps, 0);
-    % method one
-%     b(wpRowIdx+1,:) = w(:,1);
-%     A(wpRowIdx+2,(n-0)*10+(1:10)) = poly9(t(n+1)+teps, 0);
-%     b(wpRowIdx+2,:) = w(:,1);
-    % method two
-    b(wpRowIdx+1,:) = 2*w(:,1);
-    A(wpRowIdx+1,(n-0)*10+(1:10)) = poly9(t(n+1)+teps, 0);
-    
-    % the rest of the constraints
-    for i = 1+(1:9)
-        A(wpRowIdx+i,(n-1)*10+(1:10)) =    poly9(t(n+1)-teps, i-2);
-        A(wpRowIdx+i,(n-0)*10+(1:10)) = -1*poly9(t(n+1)+teps, i-2);
-        b(wpRowIdx+i) = 0;
+
+    r = 1; % row index
+    d = 0; % derivative order
+    while r<=10
+
+        % If this derivative of the trajectory is specified, then the
+        % second column block (coeffs of the next segment polynomial) will
+        % have a positive sign so that the polynomials add to 2 times the
+        % desired value. If unspecified, the continuity constraint is
+        % imposed, and the sign will be negative so that their difference
+        % is zero.
+        if d<size(w,2) && ~any(isnan(w(:,d+1)))
+            A(wpRowIdx+r,(n-1)*10+(1:10)) = poly9(t(n+1)-teps, d);
+            A(wpRowIdx+r,(n-0)*10+(1:10)) = poly9(t(n+1)+teps, d);
+            b(wpRowIdx+r,:) = 2*w(:,d+1);
+            r = r+1;
+        end
+        
+        % Continuity constraint
+        A(wpRowIdx+r,(n-1)*10+(1:10)) =    poly9(t(n+1)-teps, d);
+        A(wpRowIdx+r,(n-0)*10+(1:10)) = -1*poly9(t(n+1)+teps, d);
+        b(wpRowIdx+r,:) = 0;
+        
+        r = r+1;
+        d = d+1;
     end
 end
-
 end
 
 function P = poly9(t, d)
