@@ -184,6 +184,13 @@ N = Nwps + 1;
 % waypoint times
 t = path.T;
 
+% NOTE: In the original paper, the figures indicate that the total
+% trajectory times were typically < 5-10 seconds. Increasing the times (and
+% hence, the values of t sent to poly9) creates numerical issues -- the
+% condition number of A because very very large, and can even cause the
+% matrix to numerically drop rank. It seems like there could be a better
+% way to handle this...
+
 teps = 0.001;
 
 A = zeros(10*N,10*N);
@@ -208,9 +215,6 @@ for n = 1:Nwps
     
     % start the waypoint row index (starts at last row)
     wpRowIdx = wpRowIdx + (n-1)*10;
-
-    % start of the waypoint col index (starts at 0)
-    wpColIdx = (n-1)*10;
     
     % Assumption: Every waypoint has *at least* position specified. Some
     % combination (or none) of the derivatives may have been specified, in
@@ -219,7 +223,7 @@ for n = 1:Nwps
     A(wpRowIdx+1,(n-1)*10+(1:10)) = poly9(t(n+1)-teps, 0);
     % method one
 %     b(wpRowIdx+1,:) = w(:,1);
-%     A(wpRowIdx+2,wpColIdx+(n-0)*10+(1:10)) = poly9(t(n+1)+teps, 0);
+%     A(wpRowIdx+2,(n-0)*10+(1:10)) = poly9(t(n+1)+teps, 0);
 %     b(wpRowIdx+2,:) = w(:,1);
     % method two
     b(wpRowIdx+1,:) = 2*w(:,1);
