@@ -103,7 +103,7 @@ function [wdes, jerk_fb] = getRates(F, accel_fb, goal, qdes, t, P)
     % LPF the differentiation
     persistent last_jerk_fb;
     if t ~= 0
-        tau = 0.01;
+        tau = 0.1;
         alpha = P.Ts / (tau + P.Ts);
         jerk_fb = (1 - alpha)*last_jerk_fb + alpha*jerk_fb;
     else

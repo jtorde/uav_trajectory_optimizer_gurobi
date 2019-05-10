@@ -27,7 +27,7 @@ function hQuad = drawEnvironment(state, traj, P)
 %         R = computeAttitude(traj.a(i,:)');
         R = eye(3);
 
-        drawCoordinateAxes(traj.p(i,:)', R, 0.1, 0.1);
+        drawCoordinateAxes(traj.p(i,:)', R, 0.1, 0.2);
     end
     
     % world margin

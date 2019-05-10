@@ -11,7 +11,7 @@ clear, clc
 % Simulation Setup
 
 % timing
-Tf = 10;   % [s] how long is the simulation
+Tf = 15;   % [s] how long is the simulation
 Ts = 0.01; % [s] simulation / control period
 N = Tf/Ts; %     number of iterations
 tvec = linspace(0,Tf,N);
@@ -47,10 +47,12 @@ P.minRmag = 0.1;
 path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
 path.wps = [];
 path.wps(:,:,1) = [5 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
-path.e = [5 0 0 0 0; 0 0 0 0 0; 5 0 0 0 0];
+path.wps(:,:,2) = [5 0 0 0 0; 0 0 0 0 0; 5 0 0 0 0];
+path.e = [10 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.T = [0 5 10 15];
 [traj, ~] = trajgen(path, P);
 
-fprintf('Total trajectory time: %f\n\n', sum(traj.Tsegs));
+fprintf('Total trajectory time: %f\n\n', traj.Tdurs(end));
 
 % plot trajectory log
 figure(2), clf; hold on;
@@ -82,7 +84,7 @@ for i = 1:N
     if execute_path == true
         u = cmd.u;
         state = dynamics(state, u, Ts, P);
-        if mod(i,1/P.drawPeriod)== 0, drawnow; end
+        if mod(i,1/P.drawPeriod) == 0, drawnow; end
     end
     
     inputlog{i} = cmd;

@@ -12,34 +12,24 @@ if isempty(path.wps), Nwps = 0; else, Nwps = size(path.wps,3); end
 % number of segments
 N = Nwps + 1;
 
-alphas = zeros(3,10,N);
-Tsegs = zeros(1,N);
+% Polynomial coefficients
+alphas = zeros(3,N*10);
 
-for n = 1:N
-    % decide on the starting point
-    if n == 1, spt = path.s;
-    else, spt = path.wps(:,:,n-1); end
-    
-    % decide on the ending point
-    if n == N, ept = path.e;
-    else, ept = path.wps(:,:,n); end
-    
-    % solve the polynomial coeffs for this traj segment
-    X = [spt(1,:) ept(1,:)];
-    Y = [spt(2,:) ept(2,:)];
-    Z = [spt(3,:) ept(3,:)];
-    [alphas(:,:,n), Tsegs(n)] = polySolver(X,Y,Z,P);
-end
+% Solve for the polynomial coefficients (X, Y, Z)
+[A, b] = buildConstraints(path);
+alphas(1,:) = A\b(:,1);
+alphas(2,:) = A\b(:,2);
+alphas(3,:) = A\b(:,3);
 
 %
 % Use polynomial coefficients to generate a trajectory at the desired rate
 %
 
-traj = getTraj(alphas, Tsegs, P);
+traj = getTraj(alphas, N, path.T, P);
 
 end
 
-function [alphas, T] = polySolver(X,Y,Z,P)
+function [alphas, T] = polySolver(X,Y,Z,n,N,P)
     alphas = zeros(3,10);
     
     t0 = 0;
@@ -49,10 +39,15 @@ function [alphas, T] = polySolver(X,Y,Z,P)
     t_end = tf*2;
     t_mid = tf;
     
-    iters = 2;
+    iters = 1;
     
     for i = 1:iters
-        A = get9PolySegmentMatrix(t0, t_mid);
+        eps = 0;
+        ts = t0 - eps;
+        te = t_mid + eps;
+        if n == 1, ts = t0; end
+        if n == N, te = t_mid; end
+        A = get9PolySegmentMatrix(ts, te);
 
         b = [X; Y; Z]';
         alphas(1,:) = A\b(:,1);
@@ -60,7 +55,8 @@ function [alphas, T] = polySolver(X,Y,Z,P)
         alphas(3,:) = A\b(:,3);
 
         % check actuator feasibility
-        err = calcActuatorFeasibility(alphas, 5, [1.5, 1.5, 1], 0.1, 0, 100, pi/6, t_mid);
+        err = calcActuatorFeasibility(alphas, 1, diag(P.J), 0.1, 0, 30, pi/6, t_mid);
+%         err = 0;
 
         if err == 1
             t_start = t_mid;
@@ -88,18 +84,15 @@ function [alphas, T] = polySolver(X,Y,Z,P)
     T = tf;
 end
 
-function traj = getTraj(alphas, Tsegs, P)
+function traj = getTraj(alphas, Nsegs, Tdurs, P)
 %GETTRAJ Generate a trajectory from polynomial coefficients
 %
 
 % total trajectory duration
-T = sum(Tsegs);
+T = Tdurs(end);
 
 % total number of points
 Npts = floor(T/P.Ts);
-
-% total number of segments
-Nsegs = length(Tsegs);
 
 %
 % Concatenate segments into complete trajectory
@@ -117,38 +110,57 @@ sidx = zeros(1, Nsegs);
 % Evaluate polynomial coeffs for each trajectory segment
 for s = 1:Nsegs
     % segment duration
-    tf = Tsegs(s);
+    t0 = Tdurs(s);
+    tf = Tdurs(s+1);
+    
+%     if s == Nsegs, tf = tf - 0.001; end
 
     % evaluate at uniformly-spaced times throughout segment
-    tvec = linspace(0,tf,tf/P.Ts);
+    tvec = linspace(t0,tf,(tf-t0)/P.Ts);
 
     % calculate indices of this segment in overall trajectory
-    i1 = (s-1)*length(tvec) + 1;
-    i2 = s*length(tvec);
+    % HACK(?): This is currently deleting the last point of the traj
+    % segment to avoid repeated values, caused by the teps offset when
+    % creating continuity constraints.
+    i1 = (s-1)*(length(tvec)-1) + 1;
+    i2 = s*(length(tvec)-1);
     
     % position
-    PX = alphas(1, 1:10, s); PY = alphas(2, 1:10, s); PZ = alphas(3, 1:10, s);
-    pos(i1:i2,:) = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    idx = (s-1)*10+(1:10);
+    PX = alphas(1, idx); PY = alphas(2, idx); PZ = alphas(3, idx);
+    tmp = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    pos(i1:i2,:) = tmp(2:end,:);
 
     % velocity
     PX = polyder(PX); PY = polyder(PY); PZ = polyder(PZ);
-    vel(i1:i2,:) = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    tmp = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    vel(i1:i2,:) = tmp(2:end,:);
     
     % acceleration
     PX = polyder(PX); PY = polyder(PY); PZ = polyder(PZ);
-    accel(i1:i2,:) = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    tmp = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    accel(i1:i2,:) = tmp(2:end,:);
     
     % jerk
     PX = polyder(PX); PY = polyder(PY); PZ = polyder(PZ);
-    jerk(i1:i2,:) = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    tmp = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    jerk(i1:i2,:) = tmp(2:end,:);
     
     % snap
     PX = polyder(PX); PY = polyder(PY); PZ = polyder(PZ);
-    snap(i1:i2,:) = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    tmp = [polyval(PX, tvec)' polyval(PY, tvec)' polyval(PZ, tvec)'];
+    snap(i1:i2,:) = tmp(2:end,:);
 
     % keep track of end idx of this segment (for plotting)
     sidx(s) = i2;
 end
+
+% See associated HACK note, above
+pos(end-Nsegs+1:end,:) = repmat(pos(end-Nsegs,:), Nsegs, 1);
+vel(end-Nsegs+1:end,:) = repmat(vel(end-Nsegs,:), Nsegs, 1);
+accel(end-Nsegs+1:end,:) = repmat(accel(end-Nsegs,:), Nsegs, 1);
+jerk(end-Nsegs+1:end,:) = repmat(jerk(end-Nsegs,:), Nsegs, 1);
+snap(end-Nsegs+1:end,:) = repmat(snap(end-Nsegs,:), Nsegs, 1);
 
 traj.p = pos;
 traj.v = vel;
@@ -156,30 +168,91 @@ traj.a = accel;
 traj.j = jerk;
 traj.s = snap;
 traj.sidx = sidx;
-traj.Tsegs = Tsegs;
+traj.Tdurs = Tdurs;
 
 end 
 
-function A = get9PolySegmentMatrix(t0, tf)
-%POLY9 Creates 9th-Order Polynomial matrix for a trajectory segment
-%   This is used to solve the linear system of equations Ax=b, where
-%   A is the 10x10 matrix of terms from a 9th order polynomial and its
-%   derivatives; x is polynominal coeffs (the alphas) we are solving for;
-%   b is the position of the start and end points along with their first
-%   for derivatives.
+function [A, b] = buildConstraints(path)
+%BUILDCONSTRAINTS
 
-A = [
-    % corresponding to beginning of segment (at time t0)
-    t0^9,        t0^8,         t0^7,         t0^6,         t0^5,       t0^4,     t0^3,   t0^2, t0, 1;
-    9*t0^8,       8*t0^7,       7*t0^6,       6*t0^5,       5*t0^4,     4*t0^3,   3*t0^2, 2*t0, 1,  0;
-    8*9*t0^7,     7*8*t0^6,     6*7*t0^5,     5*6*t0^4,     4*5*t0^3,   3*4*t0^2, 2*3*t0, 1,    0,  0;
-    7*8*9*t0^6,   6*7*8*t0^5,   5*6*7*t0^4,   4*5*6*t0^3,   3*4*5*t0^2, 2*3*4*t0, 1,      0,    0,  0;
-    6*7*8*9*t0^5, 5*6*7*8*t0^4, 4*5*6*7*t0^3, 3*4*5*6*t0^2, 2*3*4*5*t0, 1,        0,      0,    0,  0;
-    % corresponding to end of segment (at time tf)
-    tf^9,         tf^8,         tf^7,         tf^6,         tf^5,       tf^4,     tf^3,   tf^2, tf, 1;
-    9*tf^8,       8*tf^7,       7*tf^6,       6*tf^5,       5*tf^4,     4*tf^3,   3*tf^2, 2*tf, 1,  0;
-    8*9*tf^7,     7*8*tf^6,     6*7*tf^5,     5*6*tf^4,     4*5*tf^3,   3*4*tf^2, 2*3*tf, 1,    0,  0;
-    7*8*9*tf^6,   6*7*8*tf^5,   5*6*7*tf^4,   4*5*6*tf^3,   3*4*5*tf^2, 2*3*4*tf, 1,      0,    0,  0;
-    6*7*8*9*tf^5, 5*6*7*8*tf^4, 4*5*6*7*tf^3, 3*4*5*6*tf^2, 2*3*4*5*tf, 1,        0,      0,    0,  0;
-    ];
+% number of waypoints
+if isempty(path.wps), Nwps = 0; else, Nwps = size(path.wps,3); end
+
+% number of segments
+N = Nwps + 1;
+
+% waypoint times
+t = path.T;
+
+teps = 0.001;
+
+A = zeros(10*N,10*N);
+b = zeros(10*N,3);
+
+% starting point
+firstIdx = 1:5;
+for i = 1:5, A(firstIdx(i),1:10) = poly9(t(1),i-1); end
+b(firstIdx,:) = path.s';
+
+% ending point
+lastIdx = size(A,1)-5+(1:5);
+for i = 1:5, A(lastIdx(i),size(A,2)-10+(1:10)) = poly9(t(end),i-1); end
+b(lastIdx,:) = path.e';
+
+% start the waypoint row index
+wpRowIdx = firstIdx(end);
+
+for n = 1:Nwps
+    % for convenience, extract current waypoint    
+    w = path.wps(:,:,n);
+    
+    % start the waypoint row index (starts at last row)
+    wpRowIdx = wpRowIdx + (n-1)*10;
+
+    % start of the waypoint col index (starts at 0)
+    wpColIdx = (n-1)*10;
+    
+    % Assumption: Every waypoint has *at least* position specified. Some
+    % combination (or none) of the derivatives may have been specified, in
+    % which case a continuity constraint is automatically imposed. These
+    % unspecified derivatives are given by NaN.
+    A(wpRowIdx+1,(n-1)*10+(1:10)) = poly9(t(n+1)-teps, 0);
+    % method one
+%     b(wpRowIdx+1,:) = w(:,1);
+%     A(wpRowIdx+2,wpColIdx+(n-0)*10+(1:10)) = poly9(t(n+1)+teps, 0);
+%     b(wpRowIdx+2,:) = w(:,1);
+    % method two
+    b(wpRowIdx+1,:) = 2*w(:,1);
+    A(wpRowIdx+1,(n-0)*10+(1:10)) = poly9(t(n+1)+teps, 0);
+    
+    % the rest of the constraints
+    for i = 1+(1:9)
+        A(wpRowIdx+i,(n-1)*10+(1:10)) =    poly9(t(n+1)-teps, i-2);
+        A(wpRowIdx+i,(n-0)*10+(1:10)) = -1*poly9(t(n+1)+teps, i-2);
+        b(wpRowIdx+i) = 0;
+    end
+end
+
+end
+
+function P = poly9(t, d)
+%POLY9 Calculates vector of 9th-order polynomial terms without coeffs
+
+% polynomial order
+m = 9;
+
+powers = (m-d):-1:0;
+P = [arrayfun(@(x)t^x, powers) zeros(1,d)];
+
+coeffs = ones(1,m+1);
+for i = 1:d
+    coeffs = polyder(coeffs);
+end
+
+% zero pad
+coeffs = [coeffs zeros(1,d)];
+
+% these coeffs are not alphas, but coeffs that come from differentiation
+P = coeffs.*P;
+
 end
