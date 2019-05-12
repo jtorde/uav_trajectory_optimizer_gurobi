@@ -116,12 +116,12 @@ class Flipper:
     def generate_trajectory(self,type):
 
         # start optimiz at current pose
-        x0 = np.zeros((12,))
+        x0 = np.zeros((40,))
         x0[0] = self.state_msg.pose.position.x
         x0[1] = self.state_msg.pose.position.y
         x0[2] = self.state_msg.pose.position.z
 
-        xf = np.zeros((12,))
+        xf = np.zeros((40,))
         xf = np.copy(x0)
         if(type==FLIP_TRANS or type==WINDOW):
             xf[0]=x0[0] + 5;
@@ -133,12 +133,19 @@ class Flipper:
         s.setTypeTrajectory(type)
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
+
+
+        if(type==FLIP or type==FLIP_TRANS):
+            x,y,z,r,p,y=[0,0,4.5,0,0,0]
+            s.setGate(x,y,z,r,p,y)
+            spawnWindowInGazebo(x,y,z,r,p,y)
+
         #s.setMaxValues([10,30,30,10,100])  #Vel, accel, jerk, snap,...
 
 
         #s.setMaxValues([10,80,50,100,100])  #Vel, accel, jerk, snap,...       
  
-        s.setMaxValues([10,200,500,500,100])  #Vel, accel, jerk, snap,...       
+        s.setMaxValues([1000,2000,50000,5000,1000000])  #Vel, accel, jerk, snap,...       
         s.setRadius(1)
 
         solved=False
@@ -156,7 +163,7 @@ class Flipper:
             
 
 
-        # Obtain many positions/accelerations to generate plot
+        # Visualize Markers in RVIZ
         K = int(s.dt/self.dc)
 
         n = 0

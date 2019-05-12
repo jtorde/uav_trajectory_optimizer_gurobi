@@ -51,6 +51,9 @@ class Solver:
 		self.max_values=max_values;
 	def setRadius(self,r):
 		self.r=r;
+	def setGate(self,x,y,z,roll,pitch,yaw):
+		self.gate_pos=[x,y,z];
+		self.gate_rpy=[roll, pitch, yaw];
 
 	def solve(self):
 		
@@ -135,26 +138,30 @@ class Solver:
 
 				az=self.getAccel(t,self.dt,2)
 
-				self.m.addGenConstrIndicator(self.bin[t,1],1,az+g_abs==0)
+				self.m.addGenConstrIndicator(self.bin[t,0],1,aextra==az +g_abs)
+				#self.m.addGenConstrIndicator(self.bin[t,0],1,aextra>=eps_y)
 
+				self.m.addGenConstrIndicator(self.bin[t,1],1,az+g_abs==0)
 				self.m.addGenConstrIndicator(self.bin[t,1],1,aextra>=eps_y)
 
 				self.m.addGenConstrIndicator(self.bin[t,5],1,az +g_abs==0)
 				self.m.addGenConstrIndicator(self.bin[t,5],1,aextra<=-eps_y)
 
-				self.m.addGenConstrIndicator(self.bin[t,6],1, az+g_abs==-aextra)
-				# self.m.addGenConstrIndicator(self.bin[t,6],1, ay<=-eps_y)	
+				self.m.addGenConstrIndicator(self.bin[t,6],1, az+g_abs==-aextra)      
+				#self.m.addGenConstrIndicator(self.bin[t,6],1, aextra<=-eps_y)	       
 
-				az_motor=az+9.81;
+				# az_motor=az+9.81;
 
-				pz=self.getPos(t,self.dt,2)
+				# pz=self.getPos(t,self.dt,2)
 
-				self.m.addConstr(pz<=self.x0[2]+15.5) #Height constraint
-				self.m.addConstr(pz>=self.x0[2]-0.3) #Height constraint
+				# self.m.addConstr(pz<=self.x0[2]+15.5) #Height constraint
+				# self.m.addConstr(pz>=self.x0[2]-0.3) #Height constraint
 
 
 			#Point D (180 degrees roll, upside down) 
 			az=self.getAccel(int(self.N/2),self.dt,2);
+			px=self.getPos(int(self.N/2),self.dt,0);
+			py=self.getPos(int(self.N/2),self.dt,1);
 			pz=self.getPos(int(self.N/2),self.dt,2);
 
 			aextra=0;
@@ -166,7 +173,12 @@ class Solver:
 			az_motor=az + 9.81
 			self.m.addConstr(   aextra == 0  );
 			self.m.addConstr(   az_motor <=  -25 );
-			self.m.addConstr(   pz ==  self.x0[2]+ 2.6  );
+
+			if(self.type==FLIP or self.type==FLIP_PITCH):
+				print("********************=",self.gate_pos[2])
+				pz=self.getPos(int(self.N/2),self.dt,2);
+				self.m.addConstr(   pz ==  self.gate_pos[2]  );  #Equality does not converge (I think because we run out of degrees of freedom in the polynomial)
+
 
 
 				#self.m.addGenConstrIndicator(self.bin[t,2],1,az+g_abs==-ay)

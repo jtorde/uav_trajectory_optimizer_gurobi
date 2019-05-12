@@ -7,6 +7,7 @@ from pyquaternion import Quaternion
 import numpy as np
 import math
 from matplotlib import cm
+import os
 GREEN=1
 RED=2
 BLUE=3
@@ -107,3 +108,10 @@ def getMarkerArray(color,all_pos,all_accel):
 		markerArray.markers.append(robotMarker) 
 
 	return markerArray
+
+
+
+
+
+def spawnWindowInGazebo(x,y,z,roll,pitch,yaw):
+	os.system("rosrun gazebo_ros spawn_model -file `rospack find acl_sim`/urdf/window.urdf -urdf -x " + str(x) + " -y " + str(y) + " -z " + str(z) + " -R " + str(roll) + " -P " + str(pitch) + " -Y " + str(yaw)+ " -model gate")
