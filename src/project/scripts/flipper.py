@@ -18,13 +18,20 @@ from utils import *
 
 TAKEOFF_ALT = 1.5
 
+
 class Flipper:
     """Flipper"""
     def __init__(self):
         
         self.sub_state = rospy.Subscriber('vicon', ViconState, self.state_cb)
 
+
+        self.srv_flip = rospy.Service('window', Trigger, self.window_cb)
+        self.srv_flip = rospy.Service('line', Trigger, self.line_cb)
+        self.srv_flip = rospy.Service('flip_pitch', Trigger, self.flip_pitch_cb)
         self.srv_flip = rospy.Service('flip', Trigger, self.flip_cb)
+        self.srv_flip = rospy.Service('flip_trans', Trigger, self.flip_trans_cb)
+
         self.srv_takeoff = rospy.Service('takeoff', Trigger, self.takeoff_cb)
 
         # outer loop setpoints
@@ -41,11 +48,26 @@ class Flipper:
         # motor spinup time, seconds
         self.spinup_secs = 2
 
+    def window_cb(self, req):
+        success = self.generate_trajectory(WINDOW)
+        return TriggerResponse(success=success, message='')
+
+    def line_cb(self, req):
+        success = self.generate_trajectory(LINE)
+        return TriggerResponse(success=success, message='')
+
+    def flip_trans_cb(self, req):
+        
+        success = self.generate_trajectory(FLIP_TRANS)
+        return TriggerResponse(success=success, message='')
+
+    def flip_pitch_cb(self, req):
+        success = self.generate_trajectory(FLIP_PITCH)
+        return TriggerResponse(success=success, message='')
+
 
     def flip_cb(self, req):
-        
-        success = self.generate_flip_trajectory()
-
+        success = self.generate_trajectory(FLIP)
         return TriggerResponse(success=success, message='')
 
 
@@ -58,12 +80,31 @@ class Flipper:
 
         goal = QuadGoal()
         goal.header.stamp = rospy.Time.now()
-        goal.pos.x,   goal.pos.y,   goal.pos.z   = (0., 0., TAKEOFF_ALT)
+        goal.pos.x,   goal.pos.y,   goal.pos.z   = (self.state_msg.pose.position.x, self.state_msg.pose.position.y, TAKEOFF_ALT)
         goal.vel.x,   goal.vel.y,   goal.vel.z   = (0., 0., 0.)
         goal.accel.x, goal.accel.y, goal.accel.z = (0., 0., 0.)
         goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = (0., 0., 0.)
         goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
-        self.pub_goal.publish(goal)
+
+        T=0.02
+        increment=0.1
+        goal.pos.z=self.state_msg.pose.position.z
+        for i in range(100):
+            goal.pos.z=min(goal.pos.z+increment,TAKEOFF_ALT);
+            rospy.sleep(T)
+            self.pub_goal.publish(goal)
+
+
+
+        # self.pub_goal.publish(goal)
+
+       
+
+        # for i in range(100):
+        #     goal.pos.y=min(goal.pos.y+increment,0);
+        #     rospy.sleep(3*T)
+        #     self.pub_goal.publish(goal)
+
 
         return TriggerResponse(success=True, message='')
 
@@ -72,9 +113,9 @@ class Flipper:
         self.state_msg = msg
 
 
-    def generate_flip_trajectory(self):
+    def generate_trajectory(self,type):
 
-        # start optim at current pose
+        # start optimiz at current pose
         x0 = np.zeros((12,))
         x0[0] = self.state_msg.pose.position.x
         x0[1] = self.state_msg.pose.position.y
@@ -82,19 +123,29 @@ class Flipper:
 
         xf = np.zeros((12,))
         xf = np.copy(x0)
+        if(type==FLIP_TRANS or type==WINDOW):
+            xf[0]=x0[0] + 5;
+
+        if(type==LINE):
+            xf[0]=x0[0] + 10;
 
         s = Solver(JERK)
+        s.setTypeTrajectory(type)
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
-        s.setMaxValues([50,30,500,10,100])  #Vel, accel, jerk, snap,...
-        
+        #s.setMaxValues([10,30,30,10,100])  #Vel, accel, jerk, snap,...
+
+
+        #s.setMaxValues([10,80,50,100,100])  #Vel, accel, jerk, snap,...       
+ 
+        s.setMaxValues([10,200,500,500,100])  #Vel, accel, jerk, snap,...       
         s.setRadius(1)
 
         solved=False
 
         for dt in np.linspace(0.1, 4.0, num=50): #Line search on dt
             print "Trying with dt= ",dt
-            s.setN(15,dt)
+            s.setN(20,dt)
             solved=s.solve()
             if(solved==True):
                 break
@@ -104,7 +155,38 @@ class Flipper:
             return False;
             
 
-        self.pub_drone_markers.publish(getMarkerArray(GREEN,s.getAllPos(),s.getAllAccel()))
+
+        # Obtain many positions/accelerations to generate plot
+        K = int(s.dt/self.dc)
+
+        n = 0
+        allPositions=[];
+        allAccelerations=[];
+        while not rospy.is_shutdown() and n<s.N:
+
+            # publish each step at a uniform rate
+            rate = rospy.Rate(1.0/self.dc)
+
+            k = 0
+            while not rospy.is_shutdown() and k<K:
+
+                p, v, a, j = self.getHighRateGoal(s, n, k)
+
+                goal = QuadGoal()
+                goal.header.stamp = rospy.Time.now()
+                allPositions.append(p);
+                allAccelerations.append(a)
+
+                #goal.pos.x,   goal.pos.y,   goal.pos.z   = p
+                #goal.accel.x, goal.accel.y, goal.accel.z = a
+                k += 1
+
+            # increment the segment number we are working with
+            n += 1
+
+        self.pub_drone_markers.publish(getMarkerArray(GREEN,allPositions,allAccelerations))
+
+
 
         #
         # Optimization Results

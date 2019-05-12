@@ -6,6 +6,7 @@ from numpy import linalg as LA
 from pyquaternion import Quaternion
 import numpy as np
 import math
+from matplotlib import cm
 GREEN=1
 RED=2
 BLUE=3
@@ -18,11 +19,14 @@ def getMarkerArray(color,all_pos,all_accel):
 	for i in range (0,len(all_accel),1):
 		#print("i=",i)
 		print(all_accel[i])
-
+	print ("*****************")
 	#print("All Positions")
 	#print(all_pos)
 
-	for i in range (0,len(all_pos),1):
+
+
+	skip=2
+	for i in range (0,len(all_pos),skip):
 		robotMarker = Marker()
 		robotMarker.header.frame_id = "world"
 		robotMarker.header.seq = i
@@ -43,8 +47,9 @@ def getMarkerArray(color,all_pos,all_accel):
 
 		accel=[ all_accel[i][0],  all_accel[i][1],  all_accel[i][2]+9.81]  #This is the accel produced by the motors
 
-		print accel
-
+		#print accel
+		#print "****************"
+		#print "accel_before", accel
 		if(LA.norm(accel)>0.001 and LA.norm(np.cross(accel, axis_z))>0.0001):
 			accel=accel/LA.norm(accel)
 			
@@ -56,7 +61,7 @@ def getMarkerArray(color,all_pos,all_accel):
 
 			dot=np.dot(accel,axis_z)
 			angle=math.acos(dot)
-			#print("axis=",axis,"angle=",angle, "accel=",accel)
+			#print("accel=",accel,"axis=",axis,"angle=",angle)
 		        
 
 			my_quaternion = Quaternion(axis=axis, angle=-angle)
@@ -91,6 +96,10 @@ def getMarkerArray(color,all_pos,all_accel):
    			robotMarker.color=ColorRGBA(0,1, 0, 1)
   		if(color==BLUE):
 			robotMarker.color=ColorRGBA(0, 0, 1, 1)
+
+		color=cm.jet(int(((i*1.0)/len(all_pos)*256)));
+		robotMarker.color=ColorRGBA(color[0], color[1], color[2], color[3])
+
 
 	    #robotMarker.mesh_resource = "package://v4/models/quad.stl";
 		robotMarker.mesh_resource = "package://project/models/quad.stl";

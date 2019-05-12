@@ -6,12 +6,6 @@ ACCEL=2;
 VEL=1;
 POS=0;
 
-FLIP=1
-FLIP_TRANS=2
-LINE=3
-WINDOW=4
-FLIP_PITCH=5
-
 from gurobipy import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,8 +34,6 @@ class Solver:
 	#	self.dt=dt
 	def setInitialState(self,x0):
 		self.x0=x0;
-	def setTypeTrajectory(self,type):
-		self.type=type;
 	def setFinalState(self,xf):
 		self.xf=xf;
 	def setN(self,N, dt):
@@ -120,91 +112,92 @@ class Solver:
 			self.m.addConstr(np.sum(self.bin[t,:])<=1)
 
 
-		if (self.type==FLIP or self.type==FLIP_TRANS or self.type==FLIP_PITCH):
-			eps_y=18
-			g_abs=9.81
-			for t in range (0,self.bin.shape[0]):
+		#Point A (45 degrees roll)
+		# az=self.getAccel(int(self.N/2)-3*delay,self.dt,2);
+		# ay=self.getAccel(int(self.N/2)-3*delay,self.dt,1);
+		eps_y=15
+		# az_motor=az + 9.81
+		g_abs=0
+		for t in range (0,self.bin.shape[0]):
 
-				ax=self.getAccel(t,self.dt,0)
+			ay=self.getAccel(t,self.dt,1)
+			az=self.getAccel(t,self.dt,2)
 
-				aextra=0;
-				if(self.type==FLIP_PITCH):
-					aextra=self.getAccel(t,self.dt,0)
-				else:
-					aextra=self.getAccel(t,self.dt,1)
+			# self.m.addGenConstrIndicator(self.bin[t,0],1,ay==az +g_abs)
+			# self.m.addGenConstrIndicator(self.bin[t,0],1,ay>=eps_y)
 
-				az=self.getAccel(t,self.dt,2)
+			self.m.addGenConstrIndicator(self.bin[t,1],1,az+g_abs==0)
+			self.m.addGenConstrIndicator(self.bin[t,1],1,ay>=eps_y)
 
-				self.m.addGenConstrIndicator(self.bin[t,1],1,az+g_abs==0)
+			# self.m.addGenConstrIndicator(self.bin[t,2],1,az+g_abs==-ay)
+			# self.m.addGenConstrIndicator(self.bin[t,2],1,ay>=eps_y)
 
-				self.m.addGenConstrIndicator(self.bin[t,1],1,aextra>=eps_y)
+			# self.m.addGenConstrIndicator(self.bin[t,4],1,az+g_abs==ay)
+			# self.m.addGenConstrIndicator(self.bin[t,4],1,ay<=-eps_y)
 
-				self.m.addGenConstrIndicator(self.bin[t,5],1,az +g_abs==0)
-				self.m.addGenConstrIndicator(self.bin[t,5],1,aextra<=-eps_y)
+			self.m.addGenConstrIndicator(self.bin[t,5],1,az +g_abs==0)
+			self.m.addGenConstrIndicator(self.bin[t,5],1,ay<=-eps_y)
 
-				self.m.addGenConstrIndicator(self.bin[t,6],1, az+g_abs==-aextra)
-				# self.m.addGenConstrIndicator(self.bin[t,6],1, ay<=-eps_y)	
+			# self.m.addGenConstrIndicator(self.bin[t,6],1, az+g_abs==-ay)
+			# self.m.addGenConstrIndicator(self.bin[t,6],1, ay<=-eps_y)	
 
-				az_motor=az+9.81;
+			az_motor=az+9.81;
 
-				pz=self.getPos(t,self.dt,2)
+			# self.m.addGenConstrIndicator(self.bin[t,0],1,lhs=ay-az_motor,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,0],1,lhs=ay,sense='>',rhs=eps_y)
 
-				self.m.addConstr(pz<=self.x0[2]+15.5) #Height constraint
-				self.m.addConstr(pz>=self.x0[2]-0.3) #Height constraint
+			# self.m.addGenConstrIndicator(self.bin[t,1],1,lhs=ay,sense='>',rhs=eps_y)
+			# self.m.addGenConstrIndicator(self.bin[t,1],1,lhs=az_motor,sense='=',rhs=0)		
 
+			# self.m.addGenConstrIndicator(self.bin[t,2],1,lhs=ay + az_motor,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,2],1,lhs=az_motor,sense='<',rhs=-eps_y)
 
-			#Point D (180 degrees roll, upside down) 
-			az=self.getAccel(int(self.N/2),self.dt,2);
-			pz=self.getPos(int(self.N/2),self.dt,2);
+			# self.m.addGenConstrIndicator(self.bin[t,4],1,lhs=ay-az,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,4],1,lhs=az_motor,sense='<',rhs=-eps_y)
 
-			aextra=0;
-			if(self.type==FLIP_PITCH):
-				aextra=self.getAccel(int(self.N/2),self.dt,0);
-			else:
-				aextra=self.getAccel(int(self.N/2),self.dt,1);
+			# self.m.addGenConstrIndicator(self.bin[t,5],1,lhs=ay,sense='<',rhs=-eps_y)
+			# self.m.addGenConstrIndicator(self.bin[t,5],1,lhs=az_motor,sense='=',rhs=0)
 
-			az_motor=az + 9.81
-			self.m.addConstr(   aextra == 0  );
-			self.m.addConstr(   az_motor <=  -25 );
-			self.m.addConstr(   pz ==  self.x0[2]+ 2.6  );
-
-
-				#self.m.addGenConstrIndicator(self.bin[t,2],1,az+g_abs==-ay)
-				# self.m.addGenConstrIndicator(self.bin[t,2],1,ay>=eps_y)
-
-				#self.m.addGenConstrIndicator(self.bin[t,0],1,ay==az +g_abs)
-				# self.m.addGenConstrIndicator(self.bin[t,0],1,ay>=eps_y)
-
-				#self.m.addGenConstrIndicator(self.bin[t,4],1,az+g_abs==ay)
-				# self.m.addGenConstrIndicator(self.bin[t,4],1,ay<=-eps_y)
-
-			# az_motor=self.getAccel(int(self.N/2)-1,self.dt,2) + 9.81
-			# self.m.addConstr(   az_motor <= -0.1  );
-
-		if(self.type==WINDOW):
-			az=self.getAccel(int(self.N/2),self.dt,2);
-			ax=self.getAccel(int(self.N/2),self.dt,0);
-			ay=self.getAccel(int(self.N/2),self.dt,1);
-
-			py=self.getPos(int(self.N/2),self.dt,1);
-			pz=self.getPos(int(self.N/2),self.dt,2);
-			az_motor=az + 9.81
-
-			self.m.addConstr(   py ==self.x0[1] +1.5  );
-			self.m.addConstr(   pz == 3 );
-			self.m.addConstr(   az_motor ==  0 );
-			self.m.addConstr(   ay <=  -18 );
-
-			for t in range (0,self.bin.shape[0]):
-				az=self.getAccel(t,self.dt,2);
-				az_motor=az + 9.81
-
-				self.m.addConstr(   az_motor >=0 );
-
-			#self.m.addConstr(   az_motor <=  -25 );
+			# self.m.addGenConstrIndicator(self.bin[t,6],1,lhs=ay+az_motor,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,6],1,lhs=ay,sense='<',rhs=-eps_y)
 
 
 
+			#############Funcionan:
+			# az_motor=az+9.81;
+
+			# # self.m.addGenConstrIndicator(self.bin[t,0],1,lhs=ay-az_motor,sense='=',rhs=0)
+			# # self.m.addGenConstrIndicator(self.bin[t,0],1,lhs=ay,sense='>',rhs=eps_y)
+
+			# self.m.addGenConstrIndicator(self.bin[t,1],1,lhs=ay,sense='>',rhs=eps_y)
+			# self.m.addGenConstrIndicator(self.bin[t,1],1,lhs=az_motor,sense='=',rhs=0)		
+
+			# self.m.addGenConstrIndicator(self.bin[t,2],1,lhs=ay + az_motor,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,2],1,lhs=az_motor,sense='<',rhs=-eps_y)
+
+			# self.m.addGenConstrIndicator(self.bin[t,4],1,lhs=ay-az,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,4],1,lhs=az_motor,sense='<',rhs=-eps_y)
+
+			# self.m.addGenConstrIndicator(self.bin[t,5],1,lhs=ay,sense='<',rhs=-eps_y)
+			# self.m.addGenConstrIndicator(self.bin[t,5],1,lhs=az_motor,sense='=',rhs=0)
+
+			# self.m.addGenConstrIndicator(self.bin[t,6],1,lhs=ay+az_motor,sense='=',rhs=0)
+			# self.m.addGenConstrIndicator(self.bin[t,6],1,lhs=ay,sense='<',rhs=-eps_y)
+
+
+		#Point D (180 degrees roll, upside down) 
+		az=self.getAccel(int(self.N/2),self.dt,2);
+		ay=self.getAccel(int(self.N/2),self.dt,1);
+		az_motor=az + 9.81
+		self.m.addConstr(   ay == 0  );
+		self.m.addConstr(   az_motor <=  -eps_y );
+
+		#Point D (180 degrees roll, upside down) 
+		# az=self.getAccel(int(self.N/2),self.dt,2);
+		# ay=self.getAccel(int(self.N/2),self.dt,1);
+		# az_motor=az + 9.81
+		# self.m.addConstr(   ay == 0  );
+		# self.m.addConstr(   az + 9.81 <=  -2 );
 
 
 		#Compute control cost and set objective
@@ -230,7 +223,6 @@ class Solver:
 			print('Optimal Solution found')
 
 			for i in range(0,self.bin.shape[0]): #Time
-				print("N= ",i),
 			 	for j in range(0,self.bin.shape[1]): #Sequence
 					print (self.bin[i,j].X),
 				print("|||"),
