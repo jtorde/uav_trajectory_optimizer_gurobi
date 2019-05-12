@@ -16,7 +16,7 @@ from visualization_msgs.msg import MarkerArray
 from solver import *
 from utils import *
 
-TAKEOFF_ALT = 1.5
+TAKEOFF_ALT = 2.5
 
 
 class Flipper:
@@ -38,6 +38,7 @@ class Flipper:
         self.pub_goal = rospy.Publisher('goal', QuadGoal, queue_size=1)
 
         self.pub_drone_markers=rospy.Publisher('snapshots', MarkerArray, queue_size=10)
+        self.pub_window=rospy.Publisher('window', Marker, queue_size=10)
 
         # initialize members
         self.state_msg = ViconState()
@@ -46,7 +47,7 @@ class Flipper:
         self.dc = 0.01
 
         # motor spinup time, seconds
-        self.spinup_secs = 2
+        self.spinup_secs = 0
 
     def window_cb(self, req):
         success = self.generate_trajectory(WINDOW)
@@ -87,7 +88,7 @@ class Flipper:
         goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
 
         T=0.02
-        increment=0.1
+        increment=0.5
         goal.pos.z=self.state_msg.pose.position.z
         for i in range(100):
             goal.pos.z=min(goal.pos.z+increment,TAKEOFF_ALT);
@@ -134,18 +135,34 @@ class Flipper:
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
 
+        print("TYPEEEEE=",type)
 
-        if(type==FLIP or type==FLIP_TRANS):
-            x,y,z,r,p,y=[0,0,4.5,0,0,0]
-            s.setGate(x,y,z,r,p,y)
-            spawnWindowInGazebo(x,y,z,r,p,y)
+        if(type==FLIP or type==FLIP_TRANS or type==FLIP_PITCH or type==WINDOW):
+            x=x0[0]
+            y=x0[1]
+            z=5.5
+            r,p,yaw=0,0,0
+            if type==FLIP_TRANS or type==FLIP_PITCH:
+                yaw=3.14/2.0;
+                x=(x0[0]+xf[0])/2.0
+            if type==WINDOW:
+                y=x0[1]+2
+                yaw=3.14/2.0;
+                p=3.14/2.0;
+                z=3.5
+                x=(x0[0]+xf[0])/2.0
+
+            s.setGate(x,y,z,r,p,yaw)
+            #spawnWindowInGazebo(x,y,z,r,p,yaw)
+
+            self.pub_window.publish(getMarkerWindow(x,y,z,r,p,yaw))
 
         #s.setMaxValues([10,30,30,10,100])  #Vel, accel, jerk, snap,...
 
 
         #s.setMaxValues([10,80,50,100,100])  #Vel, accel, jerk, snap,...       
  
-        s.setMaxValues([1000,2000,50000,5000,1000000])  #Vel, accel, jerk, snap,...       
+        s.setMaxValues([10,90,200,5000,1000000])  #Vel, accel, jerk, snap,...       
         s.setRadius(1)
 
         solved=False

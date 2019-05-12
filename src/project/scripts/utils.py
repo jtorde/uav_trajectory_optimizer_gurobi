@@ -7,6 +7,7 @@ from pyquaternion import Quaternion
 import numpy as np
 import math
 from matplotlib import cm
+from tf.transformations import quaternion_from_euler
 import os
 GREEN=1
 RED=2
@@ -115,3 +116,31 @@ def getMarkerArray(color,all_pos,all_accel):
 
 def spawnWindowInGazebo(x,y,z,roll,pitch,yaw):
 	os.system("rosrun gazebo_ros spawn_model -file `rospack find acl_sim`/urdf/window.urdf -urdf -x " + str(x) + " -y " + str(y) + " -z " + str(z) + " -R " + str(roll) + " -P " + str(pitch) + " -Y " + str(yaw)+ " -model gate")
+	pass
+
+def getMarkerWindow(x,y,z,r,p,yaw):
+
+	myMarker = Marker()
+	myMarker.header.frame_id = "world"
+	myMarker.header.seq = 1
+	myMarker.header.stamp    = rospy.get_rostime()
+	myMarker.ns = "window"
+	myMarker.id = 1
+	myMarker.type = myMarker.MESH_RESOURCE # sphere
+	   #robotMarker.type = robotMarker.SPHERE # sphere
+	myMarker.action = myMarker.ADD
+	myMarker.pose.position.x = x
+	myMarker.pose.position.y = y
+	myMarker.pose.position.z = z
+	q = quaternion_from_euler(r, p, yaw)
+	myMarker.pose.orientation.x=q[0]
+	myMarker.pose.orientation.y=q[1]
+	myMarker.pose.orientation.z=q[2]
+	myMarker.pose.orientation.w=q[3]
+	myMarker.mesh_resource = "package://acl_sim/meshes/other/window_buena.stl";
+	myMarker.color=ColorRGBA(0, 1, 0, 1)
+	myMarker.scale.x = 5;
+	myMarker.scale.y = 5;
+	myMarker.scale.z = 6;
+
+	return myMarker

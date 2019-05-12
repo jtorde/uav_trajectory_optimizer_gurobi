@@ -126,6 +126,9 @@ class Solver:
 		if (self.type==FLIP or self.type==FLIP_TRANS or self.type==FLIP_PITCH):
 			eps_y=18
 			g_abs=9.81
+			if(self.type==FLIP_TRANS):
+				eps_y=18
+
 			for t in range (0,self.bin.shape[0]):
 
 				ax=self.getAccel(t,self.dt,0)
@@ -174,12 +177,22 @@ class Solver:
 			self.m.addConstr(   aextra == 0  );
 			self.m.addConstr(   az_motor <=  -25 );
 
-			if(self.type==FLIP or self.type==FLIP_PITCH):
-				print("********************=",self.gate_pos[2])
-				pz=self.getPos(int(self.N/2),self.dt,2);
-				self.m.addConstr(   pz ==  self.gate_pos[2]  );  #Equality does not converge (I think because we run out of degrees of freedom in the polynomial)
+		if(self.type==FLIP or self.type==FLIP_PITCH or self.type==FLIP_TRANS or self.type==WINDOW):
+			print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
+			pz=self.getPos(int(self.N/2),self.dt,2);
+			py=self.getPos(int(self.N/2),self.dt,1);
+			px=self.getPos(int(self.N/2),self.dt,0);
+			self.m.addConstr(   pz ==  self.gate_pos[2]  );
+			self.m.addConstr(   py ==  self.gate_pos[1]  );
+			self.m.addConstr(   px ==  self.gate_pos[0]  );
 
-
+			# if(self.type==FLIP_TRANS):
+			# 	pz=self.getPos(int(self.N/2),self.dt,2);
+			# 	py=self.getPos(int(self.N/2),self.dt,1);
+			# 	px=self.getPos(int(self.N/2),self.dt,0);
+			# 	self.m.addConstr(   pz ==  self.gate_pos[2]  );
+			# 	self.m.addConstr(   py ==  self.gate_pos[1]  );
+			# 	self.m.addConstr(   px ==  self.gate_pos[0]  );
 
 				#self.m.addGenConstrIndicator(self.bin[t,2],1,az+g_abs==-ay)
 				# self.m.addGenConstrIndicator(self.bin[t,2],1,ay>=eps_y)
@@ -198,12 +211,7 @@ class Solver:
 			ax=self.getAccel(int(self.N/2),self.dt,0);
 			ay=self.getAccel(int(self.N/2),self.dt,1);
 
-			py=self.getPos(int(self.N/2),self.dt,1);
-			pz=self.getPos(int(self.N/2),self.dt,2);
 			az_motor=az + 9.81
-
-			self.m.addConstr(   py ==self.x0[1] +1.5  );
-			self.m.addConstr(   pz == 3 );
 			self.m.addConstr(   az_motor ==  0 );
 			self.m.addConstr(   ay <=  -18 );
 
