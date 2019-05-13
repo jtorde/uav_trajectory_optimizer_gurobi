@@ -16,10 +16,11 @@ N = Nwps + 1;
 alphas = zeros(3,N*10);
 
 % Solve for the polynomial coefficients (X, Y, Z)
-[A, b] = buildConstraints(path);
-alphas(1,:) = A\b(:,1);
-alphas(2,:) = A\b(:,2);
-alphas(3,:) = A\b(:,3);
+for axis = 1:3
+    [A, b] = buildConstraints(path, axis);
+    fprintf('Axis %d: %e, %d\n', axis, cond(A), rank(A));
+    alphas(axis,:) = A\b;
+end
 
 %
 % Use polynomial coefficients to generate a trajectory at the desired rate
@@ -107,13 +108,15 @@ snap = zeros(size(pos));
 % trajectory index of segment ends
 sidx = zeros(1, Nsegs);
 
+% indices for trajectory
+i1 = 0;
+i2 = 0;
+
 % Evaluate polynomial coeffs for each trajectory segment
 for s = 1:Nsegs
     % segment duration
     t0 = Tdurs(s);
     tf = Tdurs(s+1);
-    
-%     if s == Nsegs, tf = tf - 0.001; end
 
     % evaluate at uniformly-spaced times throughout segment
     tvec = linspace(t0,tf,(tf-t0)/P.Ts);
@@ -122,8 +125,8 @@ for s = 1:Nsegs
     % HACK(?): This is currently deleting the last point of the traj
     % segment to avoid repeated values, caused by the teps offset when
     % creating continuity constraints.
-    i1 = (s-1)*(length(tvec)-1) + 1;
-    i2 = s*(length(tvec)-1);
+    i1 = i2 + 1;
+    i2 = i1 + (length(tvec)-1) - 1;
     
     % position
     idx = (s-1)*10+(1:10);
@@ -172,7 +175,7 @@ traj.Tdurs = Tdurs;
 
 end 
 
-function [A, b] = buildConstraints(path)
+function [A, b] = buildConstraints(path, axis)
 %BUILDCONSTRAINTS
 
 % number of waypoints
@@ -194,24 +197,24 @@ t = path.T;
 teps = 0.001;
 
 A = zeros(10*N,10*N);
-b = zeros(10*N,3);
+b = zeros(10*N,1);
 
 % starting point
 firstIdx = 1:5;
 for i = 1:5, A(firstIdx(i),1:10) = poly9(t(1),i-1); end
-b(firstIdx,:) = path.s';
+b(firstIdx) = path.s(axis,:)';
 
 % ending point
 lastIdx = size(A,1)-5+(1:5);
 for i = 1:5, A(lastIdx(i),size(A,2)-10+(1:10)) = poly9(t(end),i-1); end
-b(lastIdx,:) = path.e';
+b(lastIdx) = path.e(axis,:)';
 
 % start the waypoint row index
 wpRowIdx = firstIdx(end);
 
 for n = 1:Nwps
     % for convenience, extract current waypoint    
-    w = path.wps(:,:,n);
+    w = path.wps(axis,:,n);
 
     % start the waypoint row index (starts at last row)
     wpRowIdx = wpRowIdx + (n-1)*10;
@@ -226,17 +229,17 @@ for n = 1:Nwps
         % desired value. If unspecified, the continuity constraint is
         % imposed, and the sign will be negative so that their difference
         % is zero.
-        if d<size(w,2) && ~any(isnan(w(:,d+1)))
+        if d<size(w,2) && ~any(isnan(w(d+1)))
             A(wpRowIdx+r,(n-1)*10+(1:10)) = poly9(t(n+1)-teps, d);
             A(wpRowIdx+r,(n-0)*10+(1:10)) = poly9(t(n+1)+teps, d);
-            b(wpRowIdx+r,:) = 2*w(:,d+1);
+            b(wpRowIdx+r) = 2*w(d+1);
             r = r+1;
         end
         
         % Continuity constraint
         A(wpRowIdx+r,(n-1)*10+(1:10)) =    poly9(t(n+1)-teps, d);
         A(wpRowIdx+r,(n-0)*10+(1:10)) = -1*poly9(t(n+1)+teps, d);
-        b(wpRowIdx+r,:) = 0;
+        b(wpRowIdx+r) = 0;
         
         r = r+1;
         d = d+1;

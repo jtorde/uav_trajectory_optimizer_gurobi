@@ -20,12 +20,13 @@ function hQuad = drawEnvironment(state, traj, P)
     for i = 1:size(traj.p,1)
     
         % only plot at end of segments (dt rate)
-        k = mod(i,P.drawPeriod/P.Ts);
+        k = mod(i,P.trajDrawPeriod/P.Ts);
         if k ~= 0, continue; end
 
         % calculate desired attitude from acceleration vector
-%         R = computeAttitude(traj.a(i,:)');
-        R = eye(3);
+        qdes = computeAttitude(traj.a(i,:)');
+%         qdes = Q.Identity;
+        R = Q(qdes).toRotm();
 
         drawCoordinateAxes(traj.p(i,:)', R, 0.1, 0.2);
     end
@@ -90,11 +91,27 @@ function handle = drawQuad(state, handle)
          % bottom
          5 6 7 8;...
          ];
+     
+    C = [...
+         % top
+         0 0 1;...
+         % side facing +x
+         1 0 0;...
+         % side facing +y
+         0 1 0;...
+         % side facing -x
+         0.4 0.4 0.4;...
+         % side facing -y
+         0.4 0.4 0.4;...
+         % bottom
+         0.4 0.4 0.4;...
+         ];
     
     V = state.pos' + V*R';
      
     if isempty(handle)
-        handle = patch('Faces',F,'Vertices',V,'FaceColor',[0.4 0.4 0.4]);
+        handle = patch('Faces',F,'Vertices',V,...
+                       'FaceVertexCData',C,'FaceColor','flat');
     else
         set(handle,'Faces',F,'Vertices',V);
     end
@@ -169,5 +186,32 @@ function handle = drawCoordinateAxes(O, R, k, alpha, varargin)
         set(handle{2},'XData',CY(1,:),'YData',CY(2,:),'ZData',CY(3,:));
         set(handle{3},'XData',CZ(1,:),'YData',CZ(2,:),'ZData',CZ(3,:));
     end
+end
+
+function qdes = computeAttitude(a)
+% Uses the acceleration vector to reconstruct the desired attitude
+% We assume a body flu coordinate frame
+
+    % We add an acceleration in body z to counteract accel due to gravity
+    a = a + [0;0;9.81];
+
+    % If the desired acceleration vector is zero, bail
+    if sum(a) == 0
+        qdes = Q.Identity;
+        return;
+    end
+
+    % we only care about accel dir
+    a = a/norm(a);
+
+    % find the axis of (positive) rotation
+    z = [0;0;1];
+    axis = cross(a,z);
+    axis = axis/norm(axis);
+    
+    % angle of rotation about the axis
+    angle = acos(dot(z,a));
+    
+    qdes = Q.fromAxisAngle(axis, angle).q;
 end
 

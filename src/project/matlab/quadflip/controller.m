@@ -11,11 +11,17 @@ qdes = getAttitude(Fi, goal, P);
 % qdes = computeAttitude(Fi);
 [wdes, jerk_fb] = getRates(Fi, accel_fb, goal, qdes, t, P);
 
+% qdes = Q.Identity;
+
 Re = Q(state.q).toRotm()' * Q(qdes).toRotm();
 qe = Q.fromRotm(Re).q;
 
 if (qe(1)<0), sgn = -1; else, sgn = 1; end
 M = sgn*P.att.Kp*qe(2:4)'+ P.att.Kd*(wdes - state.w); % sign(qdes(1))*
+
+% saturate controp
+f = clamp(f,0,72);
+M = clamp(M,-30,30);
 
 cmd.u = [f; M];
 cmd.Fi = Fi;
@@ -32,6 +38,8 @@ function [Fi, accel_fb] = getForce(state, goal, P)
     % PD control from position/velocity error to acceleration (eq 6)
     ep = goal.pos - state.pos;
     ed = goal.vel - state.vel;
+    ep = clamp(ep, -2, 2);
+    ed = clamp(ed, -3, 3);
     accel_fb = P.accel.Kp*ep + P.accel.Kd*ed + [0;0;1]*P.gravity;
 
     % equation 7: desired force in the inertial frame
@@ -122,29 +130,9 @@ function [wdes, jerk_fb] = getRates(F, accel_fb, goal, qdes, t, P)
     last_jerk_fb = jerk_fb;
 end
 
-function qdes = computeAttitude(a)
-% Uses the acceleration vector to reconstruct the desired attitude
-% We assume a body flu coordinate frame
-
-    % We add an acceleration in body z to counteract accel due to gravity
-%     a = a + [0;0;9.81];
-
-    % If the desired acceleration vector is zero, bail
-    if sum(a) == 0
-        qdes = Q.Identity;
-        return;
-    end
-
-    % we only care about accel dir
-    a = a/norm(a);
-
-    % find the axis of (positive) rotation
-    z = [0;0;1];
-    axis = -cross(a,z);
-    axis = axis/norm(axis);
-    
-    % angle of rotation about the axis
-    angle = acos(dot(z,a));
-    
-    qdes = Q.fromAxisAngle(axis, angle).q;
+function v = clamp(v, min, max)
+for i = 1:length(v)
+    if v(i) < min, v(i) = min; end
+    if v(i) > max, v(i) = max; end
+end
 end

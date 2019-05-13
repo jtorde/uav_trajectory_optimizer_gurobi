@@ -11,7 +11,7 @@ clear, clc
 % Simulation Setup
 
 % timing
-Tf = 15;   % [s] how long is the simulation
+Tf = 5;   % [s] how long is the simulation
 Ts = 0.01; % [s] simulation / control period
 N = Tf/Ts; %     number of iterations
 tvec = linspace(0,Tf,N);
@@ -22,7 +22,8 @@ state.q = [1 0 0 0];    % (wxyz)  rotation of body w.r.t world
 state.w = zeros(3,1);   % [rad/s] rate of body w.r.t world exprssd in body
 
 % parameters
-P.drawPeriod = 0.1;
+P.trajDrawPeriod = 0.01;
+P.simDrawPeriod = 0.05;
 P.Ts = Ts;
 P.gravity = 9.80665; % [m/s/s]
 P.mass = 1.4; % [kg]
@@ -34,9 +35,9 @@ P.accel.Kp = diag([6.0 6.0 7.0]);
 P.accel.Kd = diag([4.5 4.5 5.0]);
 % P.accel.Kd = diag([0 0 0]);
 % moments feedback PD controller
-P.att.Kp = diag([0.06 0.06 0.3]);
+P.att.Kp = diag([30 .10 0.3]);
 % P.att.Kp = diag([0 0 0]);
-P.att.Kd = diag([0.80 0.80 0.24]);
+P.att.Kd = diag([10 2 0.24]);
 % P.att.Kd = diag([0.1 0.1 0.1]);
 P.minRmag = 0.1;
 
@@ -46,10 +47,26 @@ P.minRmag = 0.1;
 % path: [x xd xdd xddd xdddd; y yd ... ; z zd ...]
 path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
 path.wps = [];
-path.wps(:,:,1) = [5 0 nan nan nan; 0 0 nan nan nan; 0 0.5 2 nan nan];
-% path.wps(:,:,2) = [5 nan nan nan nan; 0 nan nan nan nan; 5 nan nan nan nan];
-path.e = [10 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
-path.T = [0 5 10];
+path.wps(:,:,1) = [1.3 nan -0.7; 0 nan nan; 0.9 nan -9.8];
+path.wps(:,:,2) = [1.5 0 0; 0 0 0; 1 0 -9.8];
+% path.wps(:,:,3) = [1.7 nan 0.7; 0 nan nan; 0.9 nan -9.8];
+% path.wps(:,:,1) = [1.4 nan -4; 0 nan nan; 1 nan nan];
+% path.wps(:,:,2) = [1.6 nan 4; 0 nan nan; 1 nan nan];
+path.e = [3 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.T = [0 1.0 1.5 2.0 3.0];
+
+path.wps(:,:,1) = [1.5 nan -0.7; 0 nan nan; 1 nan -9.8];
+path.wps(:,:,2) = [4.5 nan 0.7; 0 nan nan; 1 nan -9.8];
+path.e = [6.0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.T = [0 0.5 1.0 1.5];
+
+% % path: [x xd xdd xddd xdddd; y yd ... ; z zd ...]
+% path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+% path.wps = [];
+% path.wps(:,:,1) = [nan nan nan; nan nan nan; -0.5 nan nan];
+% path.e = [6 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+% path.T = [0 0.75 1.5]*2;
+
 [traj, ~] = trajgen(path, P);
 
 fprintf('Total trajectory time: %f\n\n', traj.Tdurs(end));
@@ -82,13 +99,18 @@ for i = 1:N
     hViz = viz(state, [], cmd, hViz, P);
     
     if execute_path == true
-        u = cmd.u;
-        state = dynamics(state, u, Ts, P);
-        if mod(i,1/P.drawPeriod) == 0, drawnow; end
+        state = dynamics(state, cmd.u, Ts, P);
+        if mod(i,P.simDrawPeriod/P.Ts) == 0, drawnow; end
     end
     
     inputlog{i} = cmd;
     goallog{i} = goal;
+    
+    % check for runaways
+    if any(abs(state.pos)>100)
+        fprintf('\n**Runaway detected**\n\n');
+        break;
+    end
 end
 
 % Plot state log
@@ -133,14 +155,14 @@ states = [statelog{:}];
 p = [states.pos]';
 v = [states.vel]';
 q = reshape([states.q], 4, size(p,1))';
-w = [states.w]';
+w = [states.w]' * 180/pi;
 
 inputs = [inputlog{:}];
 u = [inputs.u]';
 Fi = [inputs.Fi]';
 qdes = reshape([inputs.qdes], 4, size(p,1))';
 qe = reshape([inputs.qe], 4, size(p,1))';
-wdes = [inputs.wdes]';
+wdes = [inputs.wdes]' * 180/pi;
 afb = [inputs.accel_fb]';
 jfb = [inputs.jerk_fb]';
 
@@ -153,11 +175,14 @@ RPY = quat2eul(q,'ZYX') * 180/pi;
 RPYdes = quat2eul(qdes,'ZYX') * 180/pi;
 RPYerr = quat2eul(qe,'ZYX') * 180/pi;
 
+% in case of early terminations
+tvec = tvec(1:length(p));
+
 % color order: make the desired and actual traces the same color
 co = get(gca, 'ColorOrder');
 set(groot, 'defaultAxesColorOrder', [co(1:3,:); co(1:3,:)]);
 
-n = 7; i = 1;
+n = 8; i = 1;
 subplot(n,1,i); i = i+1;
 plot(tvec,p); grid on; ylabel('Position'); hold on;
 plot(tvec,pdes,'--');
@@ -174,6 +199,9 @@ plot(tvec,vdes,'--');
 subplot(n,1,i); i = i+1;
 plot(tvec,RPY); grid on; ylabel('Euler RPY'); hold on;
 plot(tvec,RPYdes,'--');
+
+subplot(n,1,i); i = i+1;
+plot(tvec,sign(qe(:,1)).*qe(:,2:4)); grid on; ylabel('Quat Error');
 
 % subplot(n,1,i); i = i+1;
 % plot(tvec,RPYerr); grid on; ylabel('RPY Error');
