@@ -11,7 +11,7 @@ clear, clc
 % Simulation Setup
 
 % timing
-Tf = 5;   % [s] how long is the simulation
+Tf = 10;   % [s] how long is the simulation
 Ts = 0.01; % [s] simulation / control period
 N = Tf/Ts; %     number of iterations
 tvec = linspace(0,Tf,N);
@@ -22,12 +22,14 @@ state.q = [1 0 0 0];    % (wxyz)  rotation of body w.r.t world
 state.w = zeros(3,1);   % [rad/s] rate of body w.r.t world exprssd in body
 
 % parameters
-P.trajDrawPeriod = 0.01;
-P.simDrawPeriod = 0.05;
+P.trajDrawPeriod = 0.1;
+P.simDrawPeriod = 0.5;
 P.Ts = Ts;
 P.gravity = 9.80665; % [m/s/s]
 P.mass = 1.4; % [kg]
 P.J = diag([0.12 0.12 0.12]);
+P.d = 0.3; % CG to prop (arm) length
+P.c = 1; % prop drag for yaw
 P.bodyDrag = 0.5;
 % acceleration feedback PD controller
 P.accel.Kp = diag([6.0 6.0 7.0]);
@@ -66,6 +68,12 @@ path.T = [0 0.5 1.0 1.5];
 % path.wps(:,:,1) = [nan nan nan; nan nan nan; -0.5 nan nan];
 % path.e = [6 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
 % path.T = [0 0.75 1.5]*2;
+
+% path: [x xd xdd xddd xdddd; y yd ... ; z zd ...]
+path.s = [0 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.wps = [];
+path.e = [6 0 0 0 0; 0 0 0 0 0; 0 0 0 0 0];
+path.T = [0 5];
 
 [traj, ~] = trajgen(path, P);
 

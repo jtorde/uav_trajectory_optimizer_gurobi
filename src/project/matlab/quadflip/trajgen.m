@@ -6,6 +6,13 @@ function [traj, alphas] = trajgen(path, P)
 %       Control for Variable-Pitch Quadrotors, M. Cutler, AIAA GNC 2012
 %
 
+[traj, alphas, minT] = minTimeTrajSolver(path, P);
+
+end
+
+function [traj, alphas, t] = minTimeTrajSolver(path, P)
+%MINTIMETRAJSOLVER Follows IV.A Actuator-Constrained Minimum-Time Traj Gen
+
 % number of waypoints
 if isempty(path.wps), Nwps = 0; else, Nwps = size(path.wps,3); end
 
@@ -15,19 +22,52 @@ N = Nwps + 1;
 % Polynomial coefficients
 alphas = zeros(3,N*10);
 
-% Solve for the polynomial coefficients (X, Y, Z)
-for axis = 1:3
-    [A, b] = buildConstraints(path, axis);
-    fprintf('Axis %d: %e, %d\n', axis, cond(A), rank(A));
-    alphas(axis,:) = A\b;
+% start of segment times + final time (i.e., waypoint times)
+t = path.T;
+
+% Safe segment times from the most feasible iteration
+tFeasible = t;
+
+nrIterations = 50;
+stepSize = 0.1;
+
+for it = 1:nrIterations
+
+    fprintf('\n-- Iteration %d --\n\n', it);
+    
+    % Solve for the polynomial coefficients (X, Y, Z)
+    for axis = 1:3
+        [A, b] = buildConstraints(path, t, axis);
+        fprintf('Axis %d: %e, %d\n', axis, cond(A), rank(A));
+        alphas(axis,:) = A\b;
+    end
+
+    %
+    % Use polynomial coefficients to generate a trajectory at desired rate
+    %
+
+    traj = getTraj(alphas, t, P);
+
+    %
+    % Check feasibility of each segment, adjusting time if necessary
+    %
+    
+    feasible = evalTrajFeasibility(traj, t, P);
+    feasible = [1 0];
+    for i = 2:length(feasible)
+        if feasible(i) == 1
+            % save feasible times for a rainy day
+            tFeasible(i) = t(i);
+            
+            % decrease waypoint time
+            t(i) = t(i) - stepSize;
+        else
+            % increase waypoint time
+            t(i) = t(i) + stepSize;
+        end
+    end
+    
 end
-
-%
-% Use polynomial coefficients to generate a trajectory at the desired rate
-%
-
-traj = getTraj(alphas, N, path.T, P);
-
 end
 
 function [alphas, T] = polySolver(X,Y,Z,n,N,P)
@@ -85,7 +125,7 @@ function [alphas, T] = polySolver(X,Y,Z,n,N,P)
     T = tf;
 end
 
-function traj = getTraj(alphas, Nsegs, Tdurs, P)
+function traj = getTraj(alphas, Tdurs, P)
 %GETTRAJ Generate a trajectory from polynomial coefficients
 %
 
@@ -94,6 +134,9 @@ T = Tdurs(end);
 
 % total number of points
 Npts = floor(T/P.Ts);
+
+% number of segments
+Nsegs = size(alphas,2)/10;
 
 %
 % Concatenate segments into complete trajectory
@@ -175,7 +218,7 @@ traj.Tdurs = Tdurs;
 
 end 
 
-function [A, b] = buildConstraints(path, axis)
+function [A, b] = buildConstraints(path, t, axis)
 %BUILDCONSTRAINTS
 
 % number of waypoints
@@ -183,9 +226,6 @@ if isempty(path.wps), Nwps = 0; else, Nwps = size(path.wps,3); end
 
 % number of segments
 N = Nwps + 1;
-
-% waypoint times
-t = path.T;
 
 % NOTE: In the original paper, the figures indicate that the total
 % trajectory times were typically < 5-10 seconds. Increasing the times (and
