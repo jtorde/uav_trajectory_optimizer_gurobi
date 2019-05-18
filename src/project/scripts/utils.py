@@ -148,7 +148,7 @@ def getMarkerWindow(x,y,z,r,p,yaw):
 	myMarker.pose.orientation.y=q[1]
 	myMarker.pose.orientation.z=q[2]
 	myMarker.pose.orientation.w=q[3]
-	myMarker.mesh_resource = "package://acl_sim/meshes/other/window_buena.stl";
+	myMarker.mesh_resource = "package://project/models/window_buena.stl";
 	myMarker.color=ColorRGBA(0, 1, 0, 1)
 	myMarker.scale.x = 5;
 	myMarker.scale.y = 5;
