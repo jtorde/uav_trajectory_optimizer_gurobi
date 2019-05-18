@@ -30,7 +30,7 @@ Install [Gurobi](http://www.gurobi.com/)
 
 Clone this repository:
 ```
-mkdir ws && cd ws
+mkdir ws && cd ws && mkdir src && cd src
 git clone https://github.com/jtorde/uav_trajectory_optimizer_gurobi.git
 ```
 
