@@ -26,7 +26,7 @@ Flip in roll               |  Flip in pitch            |  Flip in roll with tran
 
 A video of the simulation and hardware experiments is available here:
 
-[![Trajectory Optimization for Multirotors](https://img.youtube.com/vi/WnfzMO0pXsc/0.jpg)](https://www.youtube.com/watch?v=WnfzMO0pXsc "Trajectory Optimization for Multirotors") 
+[![Trajectory Optimization for Multirotors](./imgs/frozen.png)](https://www.youtube.com/watch?v=WnfzMO0pXsc "Trajectory Optimization for Multirotors") 
 
 
 ### Instructions:
