@@ -1,3 +1,36 @@
+# /****************************************************************************
+#  *   Copyright (c) 2019 Parker Lusk and Jesus Tordesillas Torres. All rights reserved.
+#  *
+#  * Redistribution and use in source and binary forms, with or without
+#  * modification, are permitted provided that the following conditions
+#  * are met:
+#  *
+#  * 1. Redistributions of source code must retain the above copyright
+#  *    notice, this list of conditions and the following disclaimer.
+#  * 2. Redistributions in binary form must reproduce the above copyright
+#  *    notice, this list of conditions and the following disclaimer in
+#  *    the documentation and/or other materials provided with the
+#  *    distribution.
+#  * 3. Neither the name of this repo nor the names of its contributors may
+#  *    be used to endorse or promote products derived from this software
+#  *    without specific prior written permission.
+#  *
+#  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+#  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  * POSSIBILITY OF SUCH DAMAGE.
+#  *
+#  ****************************************************************************/
+
+
 POP=6;
 CRACKLE=5;
 SNAP=4;
@@ -44,6 +77,8 @@ class Solver:
 		self.type=type;
 	def setFinalState(self,xf):
 		self.xf=xf;
+	def setAngle(self,angle):
+		self.angle=angle;
 	def setN(self,N, dt):
 		self.N=N;
 		self.dt=dt
@@ -92,17 +127,6 @@ class Solver:
 					self.m.addConstr(  self.getStateOrInput(state_or_input,t,self.dt,i)  <=  self.max_values[state_or_input-1]  ) 
 					self.m.addConstr(  self.getStateOrInput(state_or_input,t,self.dt,i)  >=  -self.max_values[state_or_input-1]  ) 
 
-		#Constraints needed to force the flip maneuver
-		#Point A
-		# self.m.addConstr(  self.getPos(int(self.N/4),self.dt,0)    ==  self.x0[0] -self.r      ) 
-		# self.m.addConstr(  self.getPos(int(self.N/4),self.dt,1)    ==  self.x0[1]     )   
-		# self.m.addConstr(  self.getPos(int(self.N/4),self.dt,2)    ==  self.x0[2]+self.r ) 
-		# self.m.addConstr(  self.getAccel(int(self.N/4),self.dt,0 )  >= 0.2   ) # Positive X acceleration 
-		#print("using self.dt=",self.dt)
-
-
-
-		#delay=4
 		
 		self.bin=[];
 		max_sequence=7
@@ -113,8 +137,6 @@ class Solver:
 
 
 		self.bin=np.array(self.bin).reshape((self.N-1, max_sequence))  #Rows=Time, Columns=Sequence number
-
-
 
 		for id_sequence in range (0,max_sequence):
 			self.m.addConstr(np.sum(self.bin[:,id_sequence])==1)
@@ -142,7 +164,6 @@ class Solver:
 				az=self.getAccel(t,self.dt,2)
 
 				self.m.addGenConstrIndicator(self.bin[t,0],1,aextra==az +g_abs)
-				#self.m.addGenConstrIndicator(self.bin[t,0],1,aextra>=eps_y)
 
 				self.m.addGenConstrIndicator(self.bin[t,1],1,az+g_abs==0)
 				self.m.addGenConstrIndicator(self.bin[t,1],1,aextra>=eps_y)
@@ -151,14 +172,6 @@ class Solver:
 				self.m.addGenConstrIndicator(self.bin[t,5],1,aextra<=-eps_y)
 
 				self.m.addGenConstrIndicator(self.bin[t,6],1, az+g_abs==-aextra)      
-				#self.m.addGenConstrIndicator(self.bin[t,6],1, aextra<=-eps_y)	       
-
-				# az_motor=az+9.81;
-
-				# pz=self.getPos(t,self.dt,2)
-
-				# self.m.addConstr(pz<=self.x0[2]+15.5) #Height constraint
-				# self.m.addConstr(pz>=self.x0[2]-0.3) #Height constraint
 
 
 			#Point D (180 degrees roll, upside down) 
@@ -178,7 +191,6 @@ class Solver:
 			self.m.addConstr(   az_motor <=  -25 );
 
 		if(self.type==FLIP or self.type==FLIP_PITCH or self.type==FLIP_TRANS or self.type==WINDOW):
-			print("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW")
 			pz=self.getPos(int(self.N/2),self.dt,2);
 			py=self.getPos(int(self.N/2),self.dt,1);
 			px=self.getPos(int(self.N/2),self.dt,0);
@@ -186,46 +198,23 @@ class Solver:
 			self.m.addConstr(   py ==  self.gate_pos[1]  );
 			self.m.addConstr(   px ==  self.gate_pos[0]  );
 
-			# if(self.type==FLIP_TRANS):
-			# 	pz=self.getPos(int(self.N/2),self.dt,2);
-			# 	py=self.getPos(int(self.N/2),self.dt,1);
-			# 	px=self.getPos(int(self.N/2),self.dt,0);
-			# 	self.m.addConstr(   pz ==  self.gate_pos[2]  );
-			# 	self.m.addConstr(   py ==  self.gate_pos[1]  );
-			# 	self.m.addConstr(   px ==  self.gate_pos[0]  );
-
-				#self.m.addGenConstrIndicator(self.bin[t,2],1,az+g_abs==-ay)
-				# self.m.addGenConstrIndicator(self.bin[t,2],1,ay>=eps_y)
-
-				#self.m.addGenConstrIndicator(self.bin[t,0],1,ay==az +g_abs)
-				# self.m.addGenConstrIndicator(self.bin[t,0],1,ay>=eps_y)
-
-				#self.m.addGenConstrIndicator(self.bin[t,4],1,az+g_abs==ay)
-				# self.m.addGenConstrIndicator(self.bin[t,4],1,ay<=-eps_y)
-
-			# az_motor=self.getAccel(int(self.N/2)-1,self.dt,2) + 9.81
-			# self.m.addConstr(   az_motor <= -0.1  );
-
 		if(self.type==WINDOW):
 			az=self.getAccel(int(self.N/2),self.dt,2);
 			ax=self.getAccel(int(self.N/2),self.dt,0);
 			ay=self.getAccel(int(self.N/2),self.dt,1);
 
 			az_motor=az + 9.81
-			self.m.addConstr(   az_motor ==  0 );
-			self.m.addConstr(   ay <=  -18 );
+			self.m.addConstr(   ay==az_motor*math.tan(self.angle) );
+			self.m.addConstr(  ay >= 7 );
 
 			for t in range (0,self.bin.shape[0]):
 				az=self.getAccel(t,self.dt,2);
 				az_motor=az + 9.81
 
 				self.m.addConstr(   az_motor >=0 );
-
-			#self.m.addConstr(   az_motor <=  -25 );
-
-
-
-
+				pz=self.getPos(t,self.dt,2)
+				self.m.addConstr(pz<=self.x0[2]+10.5) #Height constraint
+				self.m.addConstr(pz>=self.x0[2]-1) #Height constraint
 
 		#Compute control cost and set objective
 		u=[];

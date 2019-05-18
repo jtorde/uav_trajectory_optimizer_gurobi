@@ -1,9 +1,43 @@
 #!/usr/bin/env python
 
+# /****************************************************************************
+#  *   Copyright (c) 2019 Parker Lusk and Jesus Tordesillas Torres. All rights reserved.
+#  *
+#  * Redistribution and use in source and binary forms, with or without
+#  * modification, are permitted provided that the following conditions
+#  * are met:
+#  *
+#  * 1. Redistributions of source code must retain the above copyright
+#  *    notice, this list of conditions and the following disclaimer.
+#  * 2. Redistributions in binary form must reproduce the above copyright
+#  *    notice, this list of conditions and the following disclaimer in
+#  *    the documentation and/or other materials provided with the
+#  *    distribution.
+#  * 3. Neither the name of this repo nor the names of its contributors may
+#  *    be used to endorse or promote products derived from this software
+#  *    without specific prior written permission.
+#  *
+#  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+#  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  * POSSIBILITY OF SUCH DAMAGE.
+#  *
+#  ****************************************************************************/
+
 import rospy
 
 import numpy as np
 import csv
+
+from tf.transformations import euler_from_quaternion
 
 from itertools import chain
 
@@ -16,7 +50,7 @@ from visualization_msgs.msg import MarkerArray
 from solver import *
 from utils import *
 
-TAKEOFF_ALT = 2.5
+TAKEOFF_ALT = 2
 
 
 class Flipper:
@@ -24,6 +58,7 @@ class Flipper:
     def __init__(self):
         
         self.sub_state = rospy.Subscriber('vicon', ViconState, self.state_cb)
+        self.sub_state = rospy.Subscriber('/GATE/world', PoseStamped, self.window_world_cb)
 
 
         self.srv_flip = rospy.Service('window', Trigger, self.window_cb)
@@ -88,27 +123,34 @@ class Flipper:
         goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
 
         T=0.02
-        increment=0.5
+        increment=0.1
         goal.pos.z=self.state_msg.pose.position.z
         for i in range(100):
             goal.pos.z=min(goal.pos.z+increment,TAKEOFF_ALT);
             rospy.sleep(T)
             self.pub_goal.publish(goal)
 
-
-
-        # self.pub_goal.publish(goal)
-
-       
-
-        # for i in range(100):
-        #     goal.pos.y=min(goal.pos.y+increment,0);
-        #     rospy.sleep(3*T)
-        #     self.pub_goal.publish(goal)
+     
+        for i in range(100):
+            goal.pos.y=min(goal.pos.y+increment,0);
+            goal.pos.x=max(goal.pos.x-increment,-8);
+            rospy.sleep(5*T)
+            self.pub_goal.publish(goal)
 
 
         return TriggerResponse(success=True, message='')
 
+    def window_world_cb(self, msg):
+
+        euler = euler_from_quaternion((msg.pose.orientation.x,msg.pose.orientation.y,msg.pose.orientation.z,msg.pose.orientation.w));
+        roll = euler[0];
+        pitch = euler[1];
+        yaw = euler[2];
+        self.angle = abs(roll)
+        self.gate_position=msg.pose.position;
+        self.gate_position.y=self.gate_position.y+0.03
+        self.gate_position.z=self.gate_position.z
+        print("self.angle=",abs(roll)*180/3.14);
 
     def state_cb(self, msg):
         self.state_msg = msg
@@ -118,14 +160,14 @@ class Flipper:
 
         # start optimiz at current pose
         x0 = np.zeros((40,))
-        x0[0] = self.state_msg.pose.position.x
-        x0[1] = self.state_msg.pose.position.y
-        x0[2] = self.state_msg.pose.position.z
+        x0[0] =  self.state_msg.pose.position.x
+        x0[1] =  self.state_msg.pose.position.y
+        x0[2] =  self.state_msg.pose.position.z 
 
         xf = np.zeros((40,))
         xf = np.copy(x0)
         if(type==FLIP_TRANS or type==WINDOW):
-            xf[0]=x0[0] + 5;
+            xf[0]=x0[0] + 6.5;
 
         if(type==LINE):
             xf[0]=x0[0] + 10;
@@ -134,8 +176,6 @@ class Flipper:
         s.setTypeTrajectory(type)
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
-
-        print("TYPEEEEE=",type)
 
         if(type==FLIP or type==FLIP_TRANS or type==FLIP_PITCH or type==WINDOW):
             x=x0[0]
@@ -146,28 +186,26 @@ class Flipper:
                 yaw=3.14/2.0;
                 x=(x0[0]+xf[0])/2.0
             if type==WINDOW:
-                y=x0[1]+2
                 yaw=3.14/2.0;
-                p=3.14/2.0;
-                z=3.5
-                x=(x0[0]+xf[0])/2.0
+                p=self.angle;
+
+                x=self.gate_position.x
+                y=self.gate_position.y
+                z=self.gate_position.z
+
+                s.setAngle(self.angle)
 
             s.setGate(x,y,z,r,p,yaw)
             #spawnWindowInGazebo(x,y,z,r,p,yaw)
 
-            self.pub_window.publish(getMarkerWindow(x,y,z,r,p,yaw))
-
-        #s.setMaxValues([10,30,30,10,100])  #Vel, accel, jerk, snap,...
-
-
-        #s.setMaxValues([10,80,50,100,100])  #Vel, accel, jerk, snap,...       
+            self.pub_window.publish(getMarkerWindow(x,y,z,r,p,yaw))   
  
-        s.setMaxValues([10,90,200,5000,1000000])  #Vel, accel, jerk, snap,...       
+        s.setMaxValues([10,20,40,5000,1000000])  #Vel, accel, jerk, snap,...       
         s.setRadius(1)
 
         solved=False
 
-        for dt in np.linspace(0.1, 4.0, num=50): #Line search on dt
+        for dt in np.linspace(0.1, 4.0, num=100): #Line search on dt
             print "Trying with dt= ",dt
             s.setN(20,dt)
             solved=s.solve()
@@ -200,22 +238,17 @@ class Flipper:
                 goal.header.stamp = rospy.Time.now()
                 allPositions.append(p);
                 allAccelerations.append(a)
-
-                #goal.pos.x,   goal.pos.y,   goal.pos.z   = p
-                #goal.accel.x, goal.accel.y, goal.accel.z = a
                 k += 1
 
             # increment the segment number we are working with
             n += 1
 
+
+
         self.pub_drone_markers.publish(getMarkerArray(GREEN,allPositions,allAccelerations))
 
 
-
-        #
         # Optimization Results
-        #
-
         csvdata = []
 
         # how many steps are in an optimization segment
@@ -252,13 +285,14 @@ class Flipper:
             n += 1
 
         # Publish final state goal
-        goal = QuadGoal()
-        goal.header.stamp = rospy.Time.now()
-        goal.pos.x, goal.pos.y, goal.pos.z = xf[0:3]
-        goal.vel.x, goal.vel.y, goal.vel.z = xf[3:6]
-        goal.accel.x, goal.accel.y, goal.accel.z = xf[6:9]
-        goal.jerk.x, goal.jerk.y, goal.jerk.z = xf[9:12]
-        self.pub_goal.publish(goal)
+        while not rospy.is_shutdown():
+            goal = QuadGoal()
+            goal.header.stamp = rospy.Time.now()
+            goal.pos.x, goal.pos.y, goal.pos.z = xf[0:3]
+            goal.vel.x, goal.vel.y, goal.vel.z = xf[3:6]
+            goal.accel.x, goal.accel.y, goal.accel.z = xf[6:9]
+            goal.jerk.x, goal.jerk.y, goal.jerk.z = xf[9:12]
+            self.pub_goal.publish(goal)
 
         with open("fliptraj.csv", "wb") as file:
             for line in csvdata:
