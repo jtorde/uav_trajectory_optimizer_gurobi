@@ -28,7 +28,7 @@ This repo has the coded implemented for the project of Underactuated Robotics (6
 ```
 
 ### Introduction:
-It uses an integrator model of any other, and solves the optimal control problem to minimize the input squared. The order of the input is specified by the user (Acceleration, Jerk, Snap, Crackle,... ). 
+It uses an integrator model of any order, and solves the optimal control problem to minimize the input squared. The order of the input is specified by the user (Acceleration, Jerk, Snap, Crackle,... ). Additional position and/or attitude constraints can be specified along the trajectory. 
 
 
 Flip in roll               |  Flip in pitch            |  Flip in roll with translation | Half-flip with translation
@@ -48,6 +48,7 @@ git clone https://github.com/jtorde/uav_trajectory_optimizer_gurobi.git
 
 Source the workspace:
 ```
+catkin build
 source devel/setup.bash
 ```
 
