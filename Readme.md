@@ -36,8 +36,9 @@ git clone https://github.com/jtorde/uav_trajectory_optimizer_gurobi.git
 
 Source the workspace:
 ```
+cd ..
 catkin build
-source ../devel/setup.bash
+source ./devel/setup.bash
 ```
 
 
