@@ -1,21 +1,31 @@
-
+```
 roslaunch quad_sim quad_sim.launch gazebo:=true veh:=SQ num:=01
 roslaunch acl_sim sim.launch quad:=SQ01s world_name:="project_good.world"
 rviz
 rosrun project flipper.py __ns:=SQ01s
 rosservice call /SQ01s/takeoff
 rosservice call /SQ01s/flip
-
+```
 
 roslaunch acl_demos joy.launch quad:=SQ01s room:=full
-
 
 
 # Trajectory Optimization for Multirotors using Gurobi #
 
 Authors: Parker Lusk and Jesus Tordesillas
 
-This repo has the coded implemented for the project of Underactuated Robotics (6.832) at MIT. 
+This repo has the coded implemented for the project of Underactuated Robotics (6.832) at MIT.
+
+```
+@techreport{luskjtorde2019,
+     title = {{Trajectory Optimization for Multirotors}},
+     author = {Parker Lusk and Jesus Tordesillas},
+     year = {2019},
+     url = {http://example.com/},
+     institution = {Aerospace Controls Lab},
+     month = {05}
+}
+```
 
 ### Introduction:
 It uses an integrator model of any other, and solves the optimal control problem to minimize the input squared. The order of the input is specified by the user (Acceleration, Jerk, Snap, Crackle,... ). 
@@ -58,8 +68,6 @@ rosservice call /SQ01s/window     #Half-flip with translation
 
 ### Use with an external simulator or harware:
 This code can also be used with an external simulation, or run onboard a real UAV. 
-
-
 
 
 ### License
