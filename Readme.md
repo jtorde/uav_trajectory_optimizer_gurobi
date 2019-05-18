@@ -24,6 +24,12 @@ Flip in roll               |  Flip in pitch            |  Flip in roll with tran
 ![](./imgs/flip.png)       |  ![](./imgs/flip_pitch.png)  |  ![](./imgs/flip_trans.png) |  ![](./imgs/window.png) 
 
 
+A video of the simulation and hardware experiments is available here:
+
+Video                  
+:-------------------------:|:
+[![Trajectory Optimization for Multirotors](https://img.youtube.com/vi/WnfzMO0pXsc/0.jpg)](https://www.youtube.com/watch?v=WnfzMO0pXsc "Trajectory Optimization for Multirotors") 
+
 
 ### Instructions:
 Install [Gurobi](http://www.gurobi.com/)  
