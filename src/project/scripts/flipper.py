@@ -40,7 +40,7 @@ import csv
 from itertools import chain
 
 from std_srvs.srv import Trigger, TriggerResponse
-from acl_msgs.msg import QuadGoal, ViconState
+#from acl_msgs.msg import QuadGoal, ViconState
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import MarkerArray
 
