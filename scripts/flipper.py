@@ -54,7 +54,7 @@ class Flipper:
     """Flipper"""
     def __init__(self):
         
-        self.sub_state = rospy.Subscriber('vicon', ViconState, self.state_cb)
+        #self.sub_state = rospy.Subscriber('vicon', ViconState, self.state_cb)
 
 
         self.srv_flip = rospy.Service('window', Trigger, self.window_cb)
@@ -63,16 +63,16 @@ class Flipper:
         self.srv_flip = rospy.Service('flip', Trigger, self.flip_cb)
         self.srv_flip = rospy.Service('flip_trans', Trigger, self.flip_trans_cb)
 
-        self.srv_takeoff = rospy.Service('takeoff', Trigger, self.takeoff_cb)
+        #self.srv_takeoff = rospy.Service('takeoff', Trigger, self.takeoff_cb)
 
         # outer loop setpoints
-        self.pub_goal = rospy.Publisher('goal', QuadGoal, queue_size=1)
+        #self.pub_goal = rospy.Publisher('goal', QuadGoal, queue_size=1)
 
         self.pub_drone_markers=rospy.Publisher('snapshots', MarkerArray, queue_size=10)
         self.pub_window=rospy.Publisher('window', Marker, queue_size=10)
 
         # initialize members
-        self.state_msg = ViconState()
+        #self.state_msg = ViconState()
 
         # desired control rate
         self.dc = 0.01
@@ -103,44 +103,44 @@ class Flipper:
         return TriggerResponse(success=success, message='')
 
 
-    def takeoff_cb(self, req):
+    # def takeoff_cb(self, req):
 
-        ts = rospy.get_time()
+    #     ts = rospy.get_time()
 
-        # Wait for motors to spin up
-        rospy.sleep(self.spinup_secs)
+    #     # Wait for motors to spin up
+    #     rospy.sleep(self.spinup_secs)
 
-        goal = QuadGoal()
-        goal.header.stamp = rospy.Time.now()
-        goal.pos.x,   goal.pos.y,   goal.pos.z   = (self.state_msg.pose.position.x, self.state_msg.pose.position.y, TAKEOFF_ALT)
-        goal.vel.x,   goal.vel.y,   goal.vel.z   = (0., 0., 0.)
-        goal.accel.x, goal.accel.y, goal.accel.z = (0., 0., 0.)
-        goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = (0., 0., 0.)
-        goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
+    #     goal = QuadGoal()
+    #     goal.header.stamp = rospy.Time.now()
+    #     goal.pos.x,   goal.pos.y,   goal.pos.z   = (self.state_msg.pose.position.x, self.state_msg.pose.position.y, TAKEOFF_ALT)
+    #     goal.vel.x,   goal.vel.y,   goal.vel.z   = (0., 0., 0.)
+    #     goal.accel.x, goal.accel.y, goal.accel.z = (0., 0., 0.)
+    #     goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = (0., 0., 0.)
+    #     goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
 
-        T=0.02
-        increment=0.5
-        goal.pos.z=self.state_msg.pose.position.z
-        for i in range(100):
-            goal.pos.z=min(goal.pos.z+increment,TAKEOFF_ALT);
-            rospy.sleep(T)
-            self.pub_goal.publish(goal)
-
-
-        return TriggerResponse(success=True, message='')
+    #     T=0.02
+    #     increment=0.5
+    #     goal.pos.z=self.state_msg.pose.position.z
+    #     for i in range(100):
+    #         goal.pos.z=min(goal.pos.z+increment,TAKEOFF_ALT);
+    #         rospy.sleep(T)
+    #         self.pub_goal.publish(goal)
 
 
-    def state_cb(self, msg):
-        self.state_msg = msg
+    #     return TriggerResponse(success=True, message='')
+
+
+    # def state_cb(self, msg):
+    #     self.state_msg = msg
 
 
     def generate_trajectory(self,type):
 
         # start optimiz at current pose
         x0 = np.zeros((40,))
-        x0[0] = self.state_msg.pose.position.x
-        x0[1] = self.state_msg.pose.position.y
-        x0[2] = self.state_msg.pose.position.z
+        x0[0] = 0#self.state_msg.pose.position.x
+        x0[1] = 0#self.state_msg.pose.position.y
+        x0[2] = 0#self.state_msg.pose.position.z
 
         xf = np.zeros((40,))
         xf = np.copy(x0)
@@ -209,8 +209,6 @@ class Flipper:
 
                 p, v, a, j = self.getHighRateGoal(s, n, k)
 
-                goal = QuadGoal()
-                goal.header.stamp = rospy.Time.now()
                 allPositions.append(p);
                 allAccelerations.append(a)
                 k += 1
@@ -242,14 +240,14 @@ class Flipper:
 
                 p, v, a, j = self.getHighRateGoal(s, n, k)
 
-                goal = QuadGoal()
-                goal.header.stamp = rospy.Time.now()
-                goal.pos.x,   goal.pos.y,   goal.pos.z   = p
-                goal.vel.x,   goal.vel.y,   goal.vel.z   = v
-                goal.accel.x, goal.accel.y, goal.accel.z = a
-                goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = j
-                goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
-                self.pub_goal.publish(goal)
+                # goal = QuadGoal()
+                # goal.header.stamp = rospy.Time.now()
+                # goal.pos.x,   goal.pos.y,   goal.pos.z   = p
+                # goal.vel.x,   goal.vel.y,   goal.vel.z   = v
+                # goal.accel.x, goal.accel.y, goal.accel.z = a
+                # goal.jerk.x,  goal.jerk.y,  goal.jerk.z  = j
+                # goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
+                # self.pub_goal.publish(goal)
 
                 csvdata.append(','.join(map(str,chain.from_iterable((p,v,a,j)))))
 
