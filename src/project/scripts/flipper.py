@@ -127,17 +127,6 @@ class Flipper:
             self.pub_goal.publish(goal)
 
 
-
-        # self.pub_goal.publish(goal)
-
-       
-
-        # for i in range(100):
-        #     goal.pos.y=min(goal.pos.y+increment,0);
-        #     rospy.sleep(3*T)
-        #     self.pub_goal.publish(goal)
-
-
         return TriggerResponse(success=True, message='')
 
 
@@ -272,13 +261,13 @@ class Flipper:
             n += 1
 
         # Publish final state goal
-        goal = QuadGoal()
-        goal.header.stamp = rospy.Time.now()
-        goal.pos.x, goal.pos.y, goal.pos.z = xf[0:3]
-        goal.vel.x, goal.vel.y, goal.vel.z = xf[3:6]
-        goal.accel.x, goal.accel.y, goal.accel.z = xf[6:9]
-        goal.jerk.x, goal.jerk.y, goal.jerk.z = xf[9:12]
-        self.pub_goal.publish(goal)
+        # goal = QuadGoal()
+        # goal.header.stamp = rospy.Time.now()
+        # goal.pos.x, goal.pos.y, goal.pos.z = xf[0:3]
+        # goal.vel.x, goal.vel.y, goal.vel.z = xf[3:6]
+        # goal.accel.x, goal.accel.y, goal.accel.z = xf[6:9]
+        # goal.jerk.x, goal.jerk.y, goal.jerk.z = xf[9:12]
+        # self.pub_goal.publish(goal)
 
         with open("fliptraj.csv", "wb") as file:
             for line in csvdata:
