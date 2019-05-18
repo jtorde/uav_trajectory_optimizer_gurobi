@@ -1,5 +1,37 @@
 #!/usr/bin/env python
 
+# /****************************************************************************
+#  *   Copyright (c) 2019 Parker Lusk and Jesus Tordesillas Torres. All rights reserved.
+#  *
+#  * Redistribution and use in source and binary forms, with or without
+#  * modification, are permitted provided that the following conditions
+#  * are met:
+#  *
+#  * 1. Redistributions of source code must retain the above copyright
+#  *    notice, this list of conditions and the following disclaimer.
+#  * 2. Redistributions in binary form must reproduce the above copyright
+#  *    notice, this list of conditions and the following disclaimer in
+#  *    the documentation and/or other materials provided with the
+#  *    distribution.
+#  * 3. Neither the name of this repo nor the names of its contributors may
+#  *    be used to endorse or promote products derived from this software
+#  *    without specific prior written permission.
+#  *
+#  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+#  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  * POSSIBILITY OF SUCH DAMAGE.
+#  *
+#  ****************************************************************************/
+
 import rospy
 
 import numpy as np
@@ -12,7 +44,6 @@ from acl_msgs.msg import QuadGoal, ViconState
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import MarkerArray
 
-# TODO: try to avoid doing this
 from solver import *
 from utils import *
 
@@ -135,8 +166,6 @@ class Flipper:
         s.setInitialState(x0.tolist())
         s.setFinalState(xf.tolist())
 
-        print("TYPEEEEE=",type)
-
         if(type==FLIP or type==FLIP_TRANS or type==FLIP_PITCH or type==WINDOW):
             x=x0[0]
             y=x0[1]
@@ -155,12 +184,7 @@ class Flipper:
             s.setGate(x,y,z,r,p,yaw)
             #spawnWindowInGazebo(x,y,z,r,p,yaw)
 
-            self.pub_window.publish(getMarkerWindow(x,y,z,r,p,yaw))
-
-        #s.setMaxValues([10,30,30,10,100])  #Vel, accel, jerk, snap,...
-
-
-        #s.setMaxValues([10,80,50,100,100])  #Vel, accel, jerk, snap,...       
+            self.pub_window.publish(getMarkerWindow(x,y,z,r,p,yaw))      
  
         s.setMaxValues([10,90,200,5000,1000000])  #Vel, accel, jerk, snap,...       
         s.setRadius(1)
@@ -200,9 +224,6 @@ class Flipper:
                 goal.header.stamp = rospy.Time.now()
                 allPositions.append(p);
                 allAccelerations.append(a)
-
-                #goal.pos.x,   goal.pos.y,   goal.pos.z   = p
-                #goal.accel.x, goal.accel.y, goal.accel.z = a
                 k += 1
 
             # increment the segment number we are working with
@@ -241,7 +262,6 @@ class Flipper:
                 goal.xy_mode = goal.z_mode = QuadGoal.MODE_POS
                 self.pub_goal.publish(goal)
 
-                #print "Goal.accel= ", goal.accel.x,goal.accel.y,goal.accel.z
                 csvdata.append(','.join(map(str,chain.from_iterable((p,v,a,j)))))
 
                 # maintain uniform timing (with period dc) for each intra-segment step

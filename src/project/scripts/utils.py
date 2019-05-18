@@ -1,3 +1,35 @@
+# /****************************************************************************
+#  *   Copyright (c) 2019 Parker Lusk and Jesus Tordesillas Torres. All rights reserved.
+#  *
+#  * Redistribution and use in source and binary forms, with or without
+#  * modification, are permitted provided that the following conditions
+#  * are met:
+#  *
+#  * 1. Redistributions of source code must retain the above copyright
+#  *    notice, this list of conditions and the following disclaimer.
+#  * 2. Redistributions in binary form must reproduce the above copyright
+#  *    notice, this list of conditions and the following disclaimer in
+#  *    the documentation and/or other materials provided with the
+#  *    distribution.
+#  * 3. Neither the name of this repo nor the names of its contributors may
+#  *    be used to endorse or promote products derived from this software
+#  *    without specific prior written permission.
+#  *
+#  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+#  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+#  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+#  * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+#  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  * POSSIBILITY OF SUCH DAMAGE.
+#  *
+#  ****************************************************************************/
+
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 from std_msgs.msg import ColorRGBA
@@ -15,17 +47,6 @@ BLUE=3
 
 def getMarkerArray(color,all_pos,all_accel):
 	markerArray = MarkerArray()
-	#print("All accelerations")
-	#print(all_accel)
-
-	for i in range (0,len(all_accel),1):
-		#print("i=",i)
-		print(all_accel[i])
-	print ("*****************")
-	#print("All Positions")
-	#print(all_pos)
-
-
 
 	skip=2
 	for i in range (0,len(all_pos),skip):
@@ -36,8 +57,7 @@ def getMarkerArray(color,all_pos,all_accel):
 		robotMarker.ns = "robot"
 		robotMarker.id = i
 
-		robotMarker.type = robotMarker.MESH_RESOURCE # sphere
-	    #robotMarker.type = robotMarker.SPHERE # sphere
+		robotMarker.type = robotMarker.MESH_RESOURCE
 		robotMarker.action = robotMarker.ADD
 		robotMarker.pose.position.x = all_pos[i][0]
 		robotMarker.pose.position.y = all_pos[i][1]
@@ -49,23 +69,13 @@ def getMarkerArray(color,all_pos,all_accel):
 
 		accel=[ all_accel[i][0],  all_accel[i][1],  all_accel[i][2]+9.81]  #This is the accel produced by the motors
 
-		#print accel
-		#print "****************"
-		#print "accel_before", accel
 		if(LA.norm(accel)>0.001 and LA.norm(np.cross(accel, axis_z))>0.0001):
 			accel=accel/LA.norm(accel)
-			
-			#print(accel)
-			#print(LA.norm(accel))
-			#print("normalized=",accel/LA.norm(accel))
 			axis=np.cross(accel, axis_z);
 			axis=axis/LA.norm(axis)
 
 			dot=np.dot(accel,axis_z)
-			angle=math.acos(dot)
-			#print("accel=",accel,"axis=",axis,"angle=",angle)
-		        
-
+			angle=math.acos(dot)        
 			my_quaternion = Quaternion(axis=axis, angle=-angle)
 
 			robotMarker.pose.orientation.x = my_quaternion.elements[1]
@@ -101,9 +111,6 @@ def getMarkerArray(color,all_pos,all_accel):
 
 		color=cm.jet(int(((i*1.0)/len(all_pos)*256)));
 		robotMarker.color=ColorRGBA(color[0], color[1], color[2], color[3])
-
-
-	    #robotMarker.mesh_resource = "package://v4/models/quad.stl";
 		robotMarker.mesh_resource = "package://project/models/quad.stl";
 
 		markerArray.markers.append(robotMarker) 
@@ -111,12 +118,9 @@ def getMarkerArray(color,all_pos,all_accel):
 	return markerArray
 
 
-
-
-
-def spawnWindowInGazebo(x,y,z,roll,pitch,yaw):
-	os.system("rosrun gazebo_ros spawn_model -file `rospack find acl_sim`/urdf/window.urdf -urdf -x " + str(x) + " -y " + str(y) + " -z " + str(z) + " -R " + str(roll) + " -P " + str(pitch) + " -Y " + str(yaw)+ " -model gate")
-	pass
+# def spawnWindowInGazebo(x,y,z,roll,pitch,yaw):
+# 	os.system("rosrun gazebo_ros spawn_model -file `rospack find acl_sim`/urdf/window.urdf -urdf -x " + str(x) + " -y " + str(y) + " -z " + str(z) + " -R " + str(roll) + " -P " + str(pitch) + " -Y " + str(yaw)+ " -model gate")
+# 	pass
 
 def getMarkerWindow(x,y,z,r,p,yaw):
 
@@ -127,7 +131,6 @@ def getMarkerWindow(x,y,z,r,p,yaw):
 	myMarker.ns = "window"
 	myMarker.id = 1
 	myMarker.type = myMarker.MESH_RESOURCE # sphere
-	   #robotMarker.type = robotMarker.SPHERE # sphere
 	myMarker.action = myMarker.ADD
 	myMarker.pose.position.x = x
 	myMarker.pose.position.y = y
@@ -137,7 +140,7 @@ def getMarkerWindow(x,y,z,r,p,yaw):
 	myMarker.pose.orientation.y=q[1]
 	myMarker.pose.orientation.z=q[2]
 	myMarker.pose.orientation.w=q[3]
-	myMarker.mesh_resource = "package://acl_sim/meshes/other/window_buena.stl";
+	myMarker.mesh_resource = "package://project/models/window_buena.stl";
 	myMarker.color=ColorRGBA(0, 1, 0, 1)
 	myMarker.scale.x = 5;
 	myMarker.scale.y = 5;
