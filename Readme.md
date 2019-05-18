@@ -9,7 +9,7 @@ This repo has the coded implemented for the project of Underactuated Robotics (6
      title = {{Trajectory Optimization for Multirotors}},
      author = {Parker Lusk and Jesus Tordesillas},
      year = {2019},
-     url = {http://example.com/},
+     url = {https://github.com/jtorde/uav_trajectory_optimizer_gurobi},
      institution = {Aerospace Controls Lab},
      month = {05}
 }
