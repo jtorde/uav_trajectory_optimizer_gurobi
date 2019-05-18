@@ -43,6 +43,7 @@ source devel/setup.bash
 
 Run the ROS node:
 ```
+roscore
 rosrun project flipper.py __ns:=SQ01s
 ```
 Open Rviz and then call one of these services:
