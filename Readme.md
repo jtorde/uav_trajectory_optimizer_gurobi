@@ -2,7 +2,7 @@
 
 Authors: Parker Lusk and Jesus Tordesillas
 
-This repo has the coded implemented for the project of Underactuated Robotics (6.832) at MIT.
+This repo has the code implemented for the project of Underactuated Robotics (6.832) at MIT.
 
 ```
 @techreport{luskjtorde2019,
