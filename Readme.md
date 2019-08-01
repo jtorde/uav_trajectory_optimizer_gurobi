@@ -61,7 +61,7 @@ rosservice call /SQ01s/flip_trans #Flip in roll with translation
 rosservice call /SQ01s/window     #Half-flip with translation
 ```
 
-### Use with an external simulator or harware:
+### Use with an external simulator or hardware:
 This code can also be used with an external simulation, or run onboard a real UAV. 
 
 
