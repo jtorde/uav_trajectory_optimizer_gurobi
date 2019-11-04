@@ -2,7 +2,8 @@
 
 Authors: Parker Lusk and Jesus Tordesillas
 
-This repo has the code implemented for the project of Underactuated Robotics (6.832) at MIT.
+This repo has the code implemented for the project of Underactuated Robotics (6.832) at MIT. 
+The pdf is available [here](https://github.com/jtorde/uav_trajectory_optimizer_gurobi/blob/master/Trajectory_Optimization_for_Multirotors.pdf). 
 
 ```
 @techreport{luskjtorde2019,
