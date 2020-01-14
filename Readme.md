@@ -67,4 +67,4 @@ This code can also be used with an external simulation, or run onboard a real UA
 
 
 ### License
-Academic license - for non-commercial use only
+BSD 3-Clause, see License file attached
