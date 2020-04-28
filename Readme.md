@@ -6,7 +6,7 @@ This repo has the code implemented for the project of Underactuated Robotics (6.
 The pdf is available [here](https://github.com/jtorde/uav_trajectory_optimizer_gurobi/blob/master/Trajectory_Optimization_for_Multirotors.pdf). 
 
 ## Citation
-when using this code, please cite the following paper:
+When using this code, please cite the following paper:
 
 ```
 @techreport{luskjtorde2019,
@@ -19,7 +19,7 @@ when using this code, please cite the following paper:
 }
 ```
 
-## Introduction:
+## Introduction
 It uses an integrator model of any order, and solves the optimal control problem to minimize the input squared. The order of the input is specified by the user (Acceleration, Jerk, Snap, Crackle,... ). Additional position and/or attitude constraints can be specified along the trajectory. 
 
 
@@ -33,7 +33,7 @@ A video of the simulation and hardware experiments is available here:
 [![Trajectory Optimization for Multirotors](./imgs/frozen.png)](https://www.youtube.com/watch?v=WnfzMO0pXsc "Trajectory Optimization for Multirotors") 
 
 
-## Instructions:
+## Instructions
 Install [Gurobi](http://www.gurobi.com/)  
 
 Clone this repository:
@@ -65,7 +65,7 @@ rosservice call /SQ01s/flip_trans #Flip in roll with translation
 rosservice call /SQ01s/window     #Half-flip with translation
 ```
 
-## Use with an external simulator or hardware:
+## Use with an external simulator or hardware
 This code can also be used with an external simulation, or run onboard a real UAV. 
 
 
