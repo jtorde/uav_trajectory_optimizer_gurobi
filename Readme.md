@@ -8,7 +8,7 @@ The pdf is available [here](https://github.com/jtorde/uav_trajectory_optimizer_g
 ## Citation
 When using this code, please cite the following paper:
 
-```
+```bibtex
 @techreport{luskjtorde2019,
      title = {{Trajectory Optimization for Multirotors}},
      author = {Parker Lusk and Jesus Tordesillas},
