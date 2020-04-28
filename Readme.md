@@ -5,6 +5,10 @@ Authors: Parker Lusk and Jesus Tordesillas (equally contributed)
 This repo has the code implemented for the project of Underactuated Robotics (6.832) at MIT. 
 The pdf is available [here](https://github.com/jtorde/uav_trajectory_optimizer_gurobi/blob/master/Trajectory_Optimization_for_Multirotors.pdf). 
 
+Flip in roll               |  Flip in pitch            |  Flip in roll with translation | Half-flip with translation
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+![](./imgs/flip.png)       |  ![](./imgs/flip_pitch.png)  |  ![](./imgs/flip_trans.png) |  ![](./imgs/window.png) 
+
 ## Citation
 When using this code, please cite the following paper:
 
@@ -22,10 +26,6 @@ When using this code, please cite the following paper:
 ## Introduction
 It uses an integrator model of any order, and solves the optimal control problem to minimize the input squared. The order of the input is specified by the user (Acceleration, Jerk, Snap, Crackle,... ). Additional position and/or attitude constraints can be specified along the trajectory. 
 
-
-Flip in roll               |  Flip in pitch            |  Flip in roll with translation | Half-flip with translation
-:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-![](./imgs/flip.png)       |  ![](./imgs/flip_pitch.png)  |  ![](./imgs/flip_trans.png) |  ![](./imgs/window.png) 
 
 
 A video of the simulation and hardware experiments is available here:
